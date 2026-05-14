@@ -1,5 +1,6 @@
 export const MODULE_SCHEMA = "schema";
 export const MODULE_ATTESTATION = "attestation";
+export const MODULE_SEAL_POLICY = "seal_policy";
 
 export const CLOCK_OBJECT_ID =
 	"0x0000000000000000000000000000000000000000000000000000000000000006";
@@ -21,9 +22,28 @@ export const MAX_FIELDS = 32;
 export const MAX_NAME_LENGTH = 128;
 export const MAX_DATA_HASH_LENGTH = 32;
 
+// SEAL key servers for testnet (from @mysten/seal docs)
+export const SEAL_KEY_SERVERS_TESTNET: Array<{ objectId: string; weight: number }> = [
+	{
+		objectId: "0x73d05d62c18d9374e3ea529e8e0ed6161da1a141a94d3f76ae3fe4e99356db75",
+		weight: 1,
+	},
+	{
+		objectId: "0xf5d14a81a982144ae441cd7d64b09027f116a468bd36e7eca494f750591623c8",
+		weight: 1,
+	},
+];
+
+export const SEAL_THRESHOLD_TESTNET = 2;
+export const SESSION_KEY_TTL_MIN = 10;
+
 export const TESTNET_CONFIG = {
-	packageId:
+	// Original package ID — kept for reference, existing attestations use this
+	legacyPackageId:
 		"0x4e1ff3e1a13fcfdc4e061cd17a2db6685e284182749e40a4920c4e1c8286ec18",
+	// Upgraded package ID — includes seal_policy module
+	packageId:
+		"0xbe78d39e0d8bad38be37512b1d067b276b05113b3d236bef3faf04f272884f54",
 	schemaRegistryId:
 		"0x1ba7a647bab32dab5cf26f7b5ebdf0c7b9f0fb328a62e224bba45ce0bf493286",
 	revocationRegistryId:

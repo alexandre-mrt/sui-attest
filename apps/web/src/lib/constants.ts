@@ -1,9 +1,30 @@
-export const PACKAGE_ID =
+// V1 package — schema + attestation modules (original deployment)
+export const LEGACY_PACKAGE_ID =
   '0x4e1ff3e1a13fcfdc4e061cd17a2db6685e284182749e40a4920c4e1c8286ec18';
+
+// V2 package — adds seal_policy module for encrypted attestations
+export const PACKAGE_ID =
+  '0xbe78d39e0d8bad38be37512b1d067b276b05113b3d236bef3faf04f272884f54';
+
 export const SCHEMA_REGISTRY_ID =
   '0x1ba7a647bab32dab5cf26f7b5ebdf0c7b9f0fb328a62e224bba45ce0bf493286';
 export const REVOCATION_REGISTRY_ID =
   '0x0b4d19c17ebd450f9209a665be589f0a171bbe8e4d2970c84678d9ea840d7624';
+
+// SEAL encryption configuration (testnet)
+export const SEAL_KEY_SERVERS = [
+  {
+    objectId: '0x73d05d62c18d9374e3ea529e8e0ed6161da1a141a94d3f76ae3fe4e99356db75',
+    weight: 1,
+  },
+  {
+    objectId: '0xf5d14a81a982144ae441cd7d64b09027f116a468bd36e7eca494f750591623c8',
+    weight: 1,
+  },
+] as const;
+
+export const SEAL_THRESHOLD = 2;
+export const SESSION_KEY_TTL_MIN = 10;
 
 // Sui Clock object (always 0x6 on Sui)
 export const CLOCK_ID = '0x6';

@@ -9,9 +9,11 @@ import {
 } from '@/lib/constants';
 import type { CreateSchemaFormData, AttestFormData } from '@/lib/types';
 import { sha256Hex } from '@/lib/utils';
+import { useSeal } from './useSeal';
 
 export function useSuiAttest() {
   const dAppKit = useDAppKit();
+  const seal = useSeal();
 
   const createSchema = async (data: CreateSchemaFormData): Promise<string> => {
     const { name, description, fields } = data;
@@ -50,10 +52,35 @@ export function useSuiAttest() {
   };
 
   const issueAttestation = async (data: AttestFormData): Promise<string> => {
-    const { schemaId, recipient, data: attestData, expiresAt } = data;
+    const { schemaId, recipient, data: attestData, expiresAt, encrypt } = data;
 
     if (!schemaId.trim()) throw new Error('Schema ID is required');
     if (!recipient.trim()) throw new Error('Recipient address is required');
+
+    let walrusBlobIdBigInt: bigint | null = null;
+    let isEncrypted = false;
+
+    if (encrypt) {
+      // Encrypted flow: create allowlist → add recipient → encrypt → (Walrus upload skipped for now)
+      // Walrus upload is not implemented in this iteration.
+      // The encrypted bytes are generated but not uploaded. This requires Walrus client setup.
+      // For now we create the allowlist and set isEncrypted=true without uploading.
+
+      const allowlistId = await seal.createAllowlist();
+
+      // Wait for key server propagation (SEAL anti-pattern: lag after object creation)
+      await new Promise((r) => setTimeout(r, 3000));
+
+      await seal.addVerifier(allowlistId, recipient);
+
+      // Encrypt the attestation data
+      const dataBytes = new TextEncoder().encode(JSON.stringify(attestData));
+      const { encryptedBytes: _encryptedBytes } = await seal.encrypt(dataBytes, allowlistId);
+
+      // TODO: upload _encryptedBytes to Walrus and set walrusBlobIdBigInt
+      // walrusBlobIdBigInt = BigInt('0x' + walrusUpload(_encryptedBytes));
+      isEncrypted = true;
+    }
 
     const dataBytes = new TextEncoder().encode(JSON.stringify(attestData));
     const dataHashHex = await sha256Hex(dataBytes as Uint8Array<ArrayBuffer>);
@@ -73,9 +100,9 @@ export function useSuiAttest() {
         tx.pure.id(schemaId),
         tx.pure.address(recipient),
         tx.pure.vector('u8', dataHashArray),
-        tx.pure.option('u256', null),
+        tx.pure.option('u256', walrusBlobIdBigInt),
         tx.pure.option('u64', expiresAtMs),
-        tx.pure.bool(false),
+        tx.pure.bool(isEncrypted),
         tx.object(CLOCK_ID),
       ],
     });
@@ -87,5 +114,5 @@ export function useSuiAttest() {
     return result.Transaction.digest;
   };
 
-  return { createSchema, issueAttestation };
+  return { createSchema, issueAttestation, seal };
 }

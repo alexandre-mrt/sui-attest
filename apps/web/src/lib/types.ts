@@ -75,4 +75,6 @@ export interface AttestFormData {
   recipient: string;
   data: Record<string, string>;
   expiresAt: string; // ISO date string or empty
+  /** When true, attestation data is SEAL-encrypted before storing */
+  encrypt?: boolean;
 }

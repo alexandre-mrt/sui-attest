@@ -18,6 +18,28 @@ export function AttestationCard({ attestation, revoked = false, schemaName }: At
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1">
             <StatusBadge status={status} />
+            {attestation.isEncrypted && (
+              <span
+                title="SEAL-encrypted — only the recipient can decrypt"
+                className="inline-flex items-center gap-1 rounded-full border border-yellow-500/30 bg-yellow-500/10 px-2 py-0.5 text-xs text-yellow-400"
+              >
+                {/* Lock icon (SVG inline, no external deps) */}
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 16 16"
+                  fill="currentColor"
+                  className="w-3 h-3"
+                  aria-hidden="true"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M8 1a3.5 3.5 0 0 0-3.5 3.5V6H4a2 2 0 0 0-2 2v5a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-.5V4.5A3.5 3.5 0 0 0 8 1Zm2 5V4.5a2 2 0 1 0-4 0V6h4Z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+                Encrypted
+              </span>
+            )}
             {schemaName && (
               <span className="text-xs text-zinc-500 truncate">{schemaName}</span>
             )}

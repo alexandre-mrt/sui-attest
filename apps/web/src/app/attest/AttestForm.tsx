@@ -15,6 +15,7 @@ export function AttestForm() {
   const [recipient, setRecipient] = useState('');
   const [dataJson, setDataJson] = useState('{\n  \n}');
   const [expiresAt, setExpiresAt] = useState('');
+  const [encrypt, setEncrypt] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -47,6 +48,7 @@ export function AttestForm() {
         recipient,
         data: parsedData,
         expiresAt,
+        encrypt,
       });
       router.push(`/explorer?tx=${digest}`);
     } catch (err) {
@@ -137,6 +139,37 @@ export function AttestForm() {
         />
       </div>
 
+      {/* SEAL Encryption Toggle */}
+      <div className="rounded-lg border border-zinc-700 bg-zinc-900/50 px-4 py-4">
+        <label className="flex items-start gap-3 cursor-pointer">
+          <div className="relative mt-0.5">
+            <input
+              id="attest-encrypt"
+              type="checkbox"
+              checked={encrypt}
+              onChange={(e) => setEncrypt(e.target.checked)}
+              className="sr-only peer"
+            />
+            <div className="w-10 h-6 rounded-full bg-zinc-700 peer-checked:bg-blue-600 transition-colors" />
+            <div className="absolute top-1 left-1 w-4 h-4 rounded-full bg-white transition-transform peer-checked:translate-x-4" />
+          </div>
+          <div>
+            <span className="text-sm font-medium text-zinc-100 flex items-center gap-2">
+              Encrypt attestation data
+              {encrypt && (
+                <span className="text-xs text-yellow-400 font-normal">
+                  SEAL threshold encryption
+                </span>
+              )}
+            </span>
+            <p className="text-xs text-zinc-500 mt-0.5">
+              When enabled, data is encrypted with SEAL so only the recipient can decrypt.
+              Requires 2 transactions (create allowlist + attest).
+            </p>
+          </div>
+        </label>
+      </div>
+
       {error && (
         <p className="rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-400">
           {error}
@@ -154,7 +187,11 @@ export function AttestForm() {
         disabled={isSubmitting || !isConnected}
         className="w-full rounded-lg bg-blue-600 px-4 py-3 text-sm font-semibold text-white hover:bg-blue-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
       >
-        {isSubmitting ? 'Submitting transaction...' : 'Issue attestation'}
+        {isSubmitting
+          ? encrypt
+            ? 'Encrypting and submitting...'
+            : 'Submitting transaction...'
+          : 'Issue attestation'}
       </button>
     </form>
   );

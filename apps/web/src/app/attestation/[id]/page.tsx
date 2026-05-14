@@ -1,5 +1,6 @@
 import { SuiJsonRpcClient } from '@mysten/sui/jsonRpc';
 import { StatusBadge, deriveStatus } from '@/components/StatusBadge';
+import { DecryptButton } from '@/components/DecryptButton';
 import { SUI_RPC_URLS, PACKAGE_ID, REVOCATION_REGISTRY_ID } from '@/lib/constants';
 import { truncateAddress, formatTimestamp } from '@/lib/utils';
 import type { Attestation } from '@/lib/types';
@@ -110,12 +111,42 @@ export default async function AttestationDetailPage({ params }: Props) {
           {attestation.expiresAt !== null && (
             <Row label="Expires" value={formatTimestamp(attestation.expiresAt)} />
           )}
-          <Row label="Encrypted" value={attestation.isEncrypted ? 'Yes' : 'No'} />
+          <Row
+            label="Encrypted"
+            value={attestation.isEncrypted ? 'Yes (SEAL)' : 'No'}
+          />
           {attestation.walrusBlobId && (
             <Row label="Walrus Blob ID" value={attestation.walrusBlobId} mono />
           )}
         </dl>
       </div>
+
+      {/* Decrypt section — only shown for encrypted attestations with a Walrus blob */}
+      {attestation.isEncrypted && attestation.walrusBlobId && (
+        <div className="mt-6 rounded-xl border border-yellow-500/20 bg-yellow-500/5 p-5">
+          <h2 className="text-sm font-semibold text-yellow-300 mb-3 flex items-center gap-2">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 16 16"
+              fill="currentColor"
+              className="w-4 h-4"
+              aria-hidden="true"
+            >
+              <path
+                fillRule="evenodd"
+                d="M8 1a3.5 3.5 0 0 0-3.5 3.5V6H4a2 2 0 0 0-2 2v5a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-.5V4.5A3.5 3.5 0 0 0 8 1Zm2 5V4.5a2 2 0 1 0-4 0V6h4Z"
+                clipRule="evenodd"
+              />
+            </svg>
+            SEAL Encrypted Data
+          </h2>
+          <p className="text-xs text-zinc-400 mb-4">
+            This attestation data is encrypted using SEAL threshold encryption.
+            Only authorized verifiers can decrypt it.
+          </p>
+          <DecryptButton walrusBlobId={attestation.walrusBlobId} />
+        </div>
+      )}
 
       <div className="mt-6 flex gap-3">
         <a
