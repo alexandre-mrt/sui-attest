@@ -27,11 +27,11 @@ export function ExplorerSearch() {
         placeholder="Search by attestation ID (0x...) or address"
         value={query}
         onChange={(e) => setQuery(e.target.value)}
-        className="flex-1 rounded-lg border border-zinc-700 bg-zinc-900 px-4 py-2.5 text-sm font-mono text-zinc-100 placeholder:text-zinc-500 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500/50"
+        className="flex-1 bg-bg-input border border-border rounded-lg h-10 px-3 text-[0.875rem] font-mono text-text-primary placeholder:text-text-tertiary focus:border-accent focus:outline-none focus:ring-[2px] focus:ring-accent-muted transition-[border-color] duration-150"
       />
       <button
         type="submit"
-        className="rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-blue-500 transition-colors"
+        className="bg-accent text-text-inverse rounded-lg h-10 px-4 text-[0.875rem] font-medium hover:bg-accent-hover transition-colors duration-150"
       >
         Search
       </button>

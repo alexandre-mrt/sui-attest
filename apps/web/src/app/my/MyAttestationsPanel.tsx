@@ -11,6 +11,8 @@ import type { Attestation } from '@/lib/types';
 
 type Tab = 'received' | 'issued';
 
+const TABS: readonly Tab[] = ['received', 'issued'] as const;
+
 const ATTESTATION_EVENTS_QUERY = `
   query GetAttestationEvents($eventType: String!, $cursor: String) {
     events(
@@ -156,8 +158,10 @@ export function MyAttestationsPanel() {
 
   if (!activeAddress) {
     return (
-      <div className="rounded-xl border border-dashed border-zinc-800 py-16 text-center">
-        <p className="text-zinc-500">Connect your wallet to see your attestations.</p>
+      <div className="border border-dashed border-border rounded-xl p-8 text-center">
+        <p className="font-display italic text-text-secondary">
+          Connect your wallet to see your attestations
+        </p>
       </div>
     );
   }
@@ -166,50 +170,58 @@ export function MyAttestationsPanel() {
 
   return (
     <div>
+      {/* Address banner for external browsing */}
       {addressParam && (
-        <div className="mb-4 rounded-lg border border-zinc-800 bg-zinc-900 px-4 py-2.5 text-sm font-mono text-zinc-400">
+        <div className="mb-6 rounded-lg bg-bg-surface border border-border px-4 py-2.5 text-[0.875rem] font-mono text-text-secondary">
           Showing attestations for: {activeAddress}
         </div>
       )}
 
-      {/* Tabs */}
-      <div className="flex gap-1 border-b border-zinc-800 mb-6">
-        {(['received', 'issued'] as Tab[]).map((t) => (
+      {/* Tab bar */}
+      <div className="inline-flex bg-bg-surface rounded-lg p-1 mb-8">
+        {TABS.map((t) => (
           <button
             key={t}
             type="button"
             onClick={() => setTab(t)}
-            className={`px-4 py-2.5 text-sm font-medium capitalize transition-colors border-b-2 -mb-px ${
+            className={`px-4 py-2 rounded-md text-[0.875rem] font-medium capitalize transition-all duration-150 ${
               tab === t
-                ? 'border-blue-500 text-blue-400'
-                : 'border-transparent text-zinc-400 hover:text-zinc-200'
+                ? 'bg-bg-hover text-text-primary'
+                : 'text-text-secondary hover:text-text-primary'
             }`}
           >
             {t}
-            <span className="ml-2 rounded-full bg-zinc-800 px-1.5 py-0.5 text-xs text-zinc-400">
+            <span
+              className={`ml-2 inline-flex items-center justify-center min-w-[1.25rem] rounded-full px-1.5 py-0.5 text-[0.6875rem] tabular-nums ${
+                tab === t
+                  ? 'bg-accent-muted text-accent'
+                  : 'bg-bg-surface text-text-tertiary'
+              }`}
+            >
               {t === 'received' ? received.length : issued.length}
             </span>
           </button>
         ))}
       </div>
 
+      {/* Content */}
       {isLoading ? (
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {[...Array(3)].map((_, i) => (
             <div
               key={i}
-              className="rounded-xl border border-zinc-800 bg-zinc-900/50 h-40 animate-pulse"
+              className="rounded-xl bg-bg-hover h-40 animate-pulse"
             />
           ))}
         </div>
       ) : attestations.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-zinc-800 py-16 text-center">
-          <p className="text-zinc-500">
-            No {tab} attestations found.
+        <div className="border border-dashed border-border rounded-xl p-8 text-center">
+          <p className="font-display italic text-text-secondary">
+            No {tab} attestations found
           </p>
         </div>
       ) : (
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 stagger">
           {attestations.map((attestation) => (
             <AttestationCard key={attestation.id} attestation={attestation} />
           ))}

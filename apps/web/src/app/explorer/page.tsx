@@ -87,37 +87,47 @@ export default async function ExplorerPage() {
   const attestations = await fetchRecentAttestations();
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+    <div className="max-w-[1120px] mx-auto px-6 py-16 animate-in">
+      {/* Header */}
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-zinc-100">Explorer</h1>
-        <p className="text-sm text-zinc-500 mt-1">
+        <h1 className="text-[1.75rem] font-medium text-text-primary leading-[1.3]">
+          Explorer
+        </h1>
+        <p className="text-[0.875rem] text-text-secondary mt-1 leading-[1.6]">
           Browse and search on-chain attestations
         </p>
       </div>
 
+      {/* Horizontal rule */}
+      <div className="border-t border-border mb-8" />
+
+      {/* Search */}
       <div className="mb-8">
         <Suspense>
           <ExplorerSearch />
         </Suspense>
       </div>
 
+      {/* Recent attestations section */}
       <div>
-        <h2 className="text-sm font-medium text-zinc-400 mb-4 uppercase tracking-wider">
+        <h2 className="text-[0.8125rem] font-medium text-text-secondary mb-4 uppercase tracking-wider">
           Recent attestations
         </h2>
 
         {attestations.length === 0 ? (
-          <div className="rounded-xl border border-dashed border-zinc-800 py-16 text-center">
-            <p className="text-zinc-500">No attestations found yet.</p>
+          <div className="border border-dashed border-border rounded-xl p-8 text-center">
+            <p className="font-display italic text-text-secondary">
+              No attestations yet
+            </p>
             <Link
               href="/attest"
-              className="mt-4 inline-block text-sm text-blue-400 hover:text-blue-300"
+              className="mt-4 inline-block text-[0.875rem] text-text-secondary hover:text-text-primary transition-colors duration-150"
             >
               Issue the first attestation
             </Link>
           </div>
         ) : (
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 stagger">
             {attestations.map((attestation) => (
               <AttestationCard key={attestation.id} attestation={attestation} />
             ))}
