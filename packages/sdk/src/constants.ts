@@ -38,14 +38,10 @@ export const SEAL_THRESHOLD_TESTNET = 2;
 export const SESSION_KEY_TTL_MIN = 10;
 
 export const TESTNET_CONFIG = {
-	// Original package ID — kept for reference, existing attestations use this
-	legacyPackageId:
-		"0x4e1ff3e1a13fcfdc4e061cd17a2db6685e284182749e40a4920c4e1c8286ec18",
-	// Upgraded package ID — includes seal_policy module
 	packageId:
-		"0xbe78d39e0d8bad38be37512b1d067b276b05113b3d236bef3faf04f272884f54",
+		"0x3827645d508fd7f1ebbddb0f7d7804e8b0b6658b7c8e729e4be90a69cefb21a1",
 	schemaRegistryId:
-		"0x1ba7a647bab32dab5cf26f7b5ebdf0c7b9f0fb328a62e224bba45ce0bf493286",
+		"0x023e5da71a29d6cc94919453d7c3b3a269c1afb6fa2b0b8e8f51ac0a1bf4150f",
 	revocationRegistryId:
-		"0x0b4d19c17ebd450f9209a665be589f0a171bbe8e4d2970c84678d9ea840d7624",
+		"0x3b5f1504c8320c726a35ceb59974ca69ed675b51cb5dd9aac1c16703490c8ab7",
 };
