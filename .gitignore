@@ -1,2 +1,5 @@
 .env
 node_modules
+.next
+packages/move/build/
+dist/
