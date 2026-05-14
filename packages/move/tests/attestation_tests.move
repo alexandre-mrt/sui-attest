@@ -84,8 +84,10 @@ fun test_attest_happy_path() {
         let schema_registry = ts::take_shared<SchemaRegistry>(&scenario);
         let clock = clock::create_for_testing(scenario.ctx());
 
+        let mut rev_reg = ts::take_shared<RevocationRegistry>(&scenario);
         attestation::attest(
             &schema_registry,
+            &mut rev_reg,
             schema_id,
             RECIPIENT,
             test_data_hash(),
@@ -97,6 +99,7 @@ fun test_attest_happy_path() {
         );
 
         clock::destroy_for_testing(clock);
+        ts::return_shared(rev_reg);
         ts::return_shared(schema_registry);
     };
 
@@ -125,8 +128,10 @@ fun test_revoke_attestation() {
         let schema_registry = ts::take_shared<SchemaRegistry>(&scenario);
         let clock = clock::create_for_testing(scenario.ctx());
 
+        let mut rev_reg = ts::take_shared<RevocationRegistry>(&scenario);
         attestation::attest(
             &schema_registry,
+            &mut rev_reg,
             schema_id,
             RECIPIENT,
             test_data_hash(),
@@ -138,6 +143,7 @@ fun test_revoke_attestation() {
         );
 
         clock::destroy_for_testing(clock);
+        ts::return_shared(rev_reg);
         ts::return_shared(schema_registry);
     };
 
@@ -188,8 +194,10 @@ fun test_unauthorized_revoke() {
         let schema_registry = ts::take_shared<SchemaRegistry>(&scenario);
         let clock = clock::create_for_testing(scenario.ctx());
 
+        let mut rev_reg = ts::take_shared<RevocationRegistry>(&scenario);
         attestation::attest(
             &schema_registry,
+            &mut rev_reg,
             schema_id,
             RECIPIENT,
             test_data_hash(),
@@ -201,6 +209,7 @@ fun test_unauthorized_revoke() {
         );
 
         clock::destroy_for_testing(clock);
+        ts::return_shared(rev_reg);
         ts::return_shared(schema_registry);
     };
 
@@ -239,8 +248,10 @@ fun test_double_revoke() {
         let schema_registry = ts::take_shared<SchemaRegistry>(&scenario);
         let clock = clock::create_for_testing(scenario.ctx());
 
+        let mut rev_reg = ts::take_shared<RevocationRegistry>(&scenario);
         attestation::attest(
             &schema_registry,
+            &mut rev_reg,
             schema_id,
             RECIPIENT,
             test_data_hash(),
@@ -252,6 +263,7 @@ fun test_double_revoke() {
         );
 
         clock::destroy_for_testing(clock);
+        ts::return_shared(rev_reg);
         ts::return_shared(schema_registry);
     };
 
@@ -308,8 +320,10 @@ fun test_verify_valid_attestation() {
         let schema_registry = ts::take_shared<SchemaRegistry>(&scenario);
         let clock = clock::create_for_testing(scenario.ctx());
 
+        let mut rev_reg = ts::take_shared<RevocationRegistry>(&scenario);
         attestation::attest(
             &schema_registry,
+            &mut rev_reg,
             schema_id,
             RECIPIENT,
             test_data_hash(),
@@ -321,6 +335,7 @@ fun test_verify_valid_attestation() {
         );
 
         clock::destroy_for_testing(clock);
+        ts::return_shared(rev_reg);
         ts::return_shared(schema_registry);
     };
 
@@ -351,8 +366,10 @@ fun test_verify_revoked_attestation() {
         let schema_registry = ts::take_shared<SchemaRegistry>(&scenario);
         let clock = clock::create_for_testing(scenario.ctx());
 
+        let mut rev_reg = ts::take_shared<RevocationRegistry>(&scenario);
         attestation::attest(
             &schema_registry,
+            &mut rev_reg,
             schema_id,
             RECIPIENT,
             test_data_hash(),
@@ -364,6 +381,7 @@ fun test_verify_revoked_attestation() {
         );
 
         clock::destroy_for_testing(clock);
+        ts::return_shared(rev_reg);
         ts::return_shared(schema_registry);
     };
 
@@ -418,8 +436,10 @@ fun test_verify_expired_attestation() {
         let clock = clock::create_for_testing(scenario.ctx());
 
         // expires_at = 1000 ms (> current timestamp 0)
+        let mut rev_reg = ts::take_shared<RevocationRegistry>(&scenario);
         attestation::attest(
             &schema_registry,
+            &mut rev_reg,
             schema_id,
             RECIPIENT,
             test_data_hash(),
@@ -431,6 +451,7 @@ fun test_verify_expired_attestation() {
         );
 
         clock::destroy_for_testing(clock);
+        ts::return_shared(rev_reg);
         ts::return_shared(schema_registry);
     };
 
@@ -467,8 +488,10 @@ fun test_self_attestation_prevented() {
         let clock = clock::create_for_testing(scenario.ctx());
 
         // Attester tries to attest to themselves — should abort
+        let mut rev_reg = ts::take_shared<RevocationRegistry>(&scenario);
         attestation::attest(
             &schema_registry,
+            &mut rev_reg,
             schema_id,
             ATTESTER, // recipient == attester
             test_data_hash(),
@@ -480,7 +503,70 @@ fun test_self_attestation_prevented() {
         );
 
         clock::destroy_for_testing(clock);
+        ts::return_shared(rev_reg);
         ts::return_shared(schema_registry);
+    };
+
+    ts::end(scenario);
+}
+
+#[test]
+fun test_revoke_by_id() {
+    let mut scenario = ts::begin(ATTESTER);
+    let schema_id = setup_with_schema(&mut scenario);
+
+    // Issue attestation
+    ts::next_tx(&mut scenario, ATTESTER);
+    let att_id;
+    {
+        let schema_registry = ts::take_shared<SchemaRegistry>(&scenario);
+        let clock = clock::create_for_testing(scenario.ctx());
+        let mut rev_reg = ts::take_shared<RevocationRegistry>(&scenario);
+
+        attestation::attest(
+            &schema_registry,
+            &mut rev_reg,
+            schema_id,
+            RECIPIENT,
+            test_data_hash(),
+            option::none(),
+            option::none(),
+            false,
+            &clock,
+            scenario.ctx(),
+        );
+
+        clock::destroy_for_testing(clock);
+        ts::return_shared(rev_reg);
+        ts::return_shared(schema_registry);
+    };
+
+    // Get attestation ID from recipient's object
+    ts::next_tx(&mut scenario, RECIPIENT);
+    {
+        let att = ts::take_from_sender<Attestation>(&scenario);
+        att_id = object::id(&att);
+        ts::return_to_sender(&scenario, att);
+    };
+
+    // Attester revokes by ID (without needing the Attestation object)
+    ts::next_tx(&mut scenario, ATTESTER);
+    {
+        let mut rev_registry = ts::take_shared<RevocationRegistry>(&scenario);
+        let clock = clock::create_for_testing(scenario.ctx());
+
+        attestation::revoke_by_id(
+            &mut rev_registry,
+            att_id,
+            b"revoked by id without owning attestation",
+            &clock,
+            scenario.ctx(),
+        );
+
+        assert!(attestation::is_revoked(&rev_registry, att_id), 0);
+
+        clock::destroy_for_testing(clock);
+        ts::return_shared(rev_registry);
     };
 
     ts::end(scenario);

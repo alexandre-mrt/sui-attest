@@ -41,6 +41,7 @@ public struct Attestation has key, store {
 public struct RevocationRegistry has key {
     id: UID,
     revocations: Table<ID, RevocationRecord>,
+    attester_registry: Table<ID, address>,
 }
 
 /// Record of a revocation.
@@ -76,6 +77,7 @@ fun init(ctx: &mut TxContext) {
     let registry = RevocationRegistry {
         id: object::new(ctx),
         revocations: table::new(ctx),
+        attester_registry: table::new(ctx),
     };
     transfer::share_object(registry);
 }
@@ -86,6 +88,7 @@ fun init(ctx: &mut TxContext) {
 /// it to the recipient. Validates schema exists.
 public entry fun attest(
     schema_registry: &SchemaRegistry,
+    revocation_registry: &mut RevocationRegistry,
     schema_id: ID,
     recipient: address,
     data_hash: vector<u8>,
@@ -133,6 +136,9 @@ public entry fun attest(
     });
 
     transfer::transfer(attestation, recipient);
+
+    // Register attester for revoke_by_id (doesn't need the owned Attestation object)
+    revocation_registry.attester_registry.add(attestation_id, attester);
 }
 
 /// Revoke an attestation. Only the original attester can revoke.
@@ -164,6 +170,39 @@ public entry fun revoke(
     event::emit(AttestationRevoked {
         attestation_id,
         attester: attestation.attester,
+        reason: revocation_registry.revocations.borrow(attestation_id).reason,
+        timestamp,
+    });
+}
+
+/// Revoke by attestation ID without needing the owned Attestation object.
+/// Uses the attester_registry to verify the caller is the original attester.
+public entry fun revoke_by_id(
+    revocation_registry: &mut RevocationRegistry,
+    attestation_id: ID,
+    reason: vector<u8>,
+    clock: &Clock,
+    ctx: &mut TxContext,
+) {
+    assert!(revocation_registry.attester_registry.contains(attestation_id), ESchemaNotFound);
+    let attester = *revocation_registry.attester_registry.borrow(attestation_id);
+    assert!(ctx.sender() == attester, ENotAttester);
+    assert!(reason.length() <= MAX_REASON_LENGTH, EReasonTooLong);
+    assert!(!revocation_registry.revocations.contains(attestation_id), EAlreadyRevoked);
+
+    let timestamp = clock.timestamp_ms();
+
+    let record = RevocationRecord {
+        attester,
+        revoked_at: timestamp,
+        reason,
+    };
+
+    revocation_registry.revocations.add(attestation_id, record);
+
+    event::emit(AttestationRevoked {
+        attestation_id,
+        attester,
         reason: revocation_registry.revocations.borrow(attestation_id).reason,
         timestamp,
     });
