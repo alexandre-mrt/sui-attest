@@ -70,13 +70,14 @@ export function AttestForm() {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      <div>
+    <form onSubmit={handleSubmit} className="space-y-0">
+      {/* Schema ID */}
+      <div className="py-6">
         <label
           htmlFor="attest-schema"
-          className="block text-sm font-medium text-zinc-300 mb-1.5"
+          className="block text-[13px] font-medium text-text-secondary uppercase tracking-wider mb-2"
         >
-          Schema ID <span className="text-red-400">*</span>
+          Schema ID <span className="text-revoked">*</span>
         </label>
         <input
           id="attest-schema"
@@ -85,22 +86,25 @@ export function AttestForm() {
           placeholder="0x..."
           value={schemaId}
           onChange={(e) => setSchemaId(e.target.value)}
-          className="w-full rounded-lg border border-zinc-700 bg-zinc-900 px-4 py-2.5 text-sm font-mono text-zinc-100 placeholder:text-zinc-500 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500/50"
+          className="w-full bg-bg-input border border-border rounded-lg h-10 px-3 text-[0.875rem] font-mono text-text-primary placeholder:text-text-tertiary focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent-muted transition-[border-color] duration-150"
         />
-        <p className="mt-1 text-xs text-zinc-500">
+        <p className="mt-2 text-[0.8125rem] text-text-tertiary">
           The object ID of the schema to attest against.{' '}
-          <a href="/schemas" className="text-blue-400 hover:text-blue-300">
+          <a href="/schemas" className="text-accent hover:text-accent-hover transition-colors duration-150">
             Browse schemas
           </a>
         </p>
       </div>
 
-      <div>
+      <hr className="border-border" />
+
+      {/* Recipient */}
+      <div className="py-6">
         <label
           htmlFor="attest-recipient"
-          className="block text-sm font-medium text-zinc-300 mb-1.5"
+          className="block text-[13px] font-medium text-text-secondary uppercase tracking-wider mb-2"
         >
-          Recipient address <span className="text-red-400">*</span>
+          Recipient address <span className="text-revoked">*</span>
         </label>
         <input
           id="attest-recipient"
@@ -109,14 +113,17 @@ export function AttestForm() {
           placeholder="0x..."
           value={recipient}
           onChange={(e) => setRecipient(e.target.value)}
-          className="w-full rounded-lg border border-zinc-700 bg-zinc-900 px-4 py-2.5 text-sm font-mono text-zinc-100 placeholder:text-zinc-500 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500/50"
+          className="w-full bg-bg-input border border-border rounded-lg h-10 px-3 text-[0.875rem] font-mono text-text-primary placeholder:text-text-tertiary focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent-muted transition-[border-color] duration-150"
         />
       </div>
 
-      <div>
+      <hr className="border-border" />
+
+      {/* Attestation data */}
+      <div className="py-6">
         <label
           htmlFor="attest-data"
-          className="block text-sm font-medium text-zinc-300 mb-1.5"
+          className="block text-[13px] font-medium text-text-secondary uppercase tracking-wider mb-2"
         >
           Attestation data (JSON)
         </label>
@@ -125,20 +132,23 @@ export function AttestForm() {
           rows={6}
           value={dataJson}
           onChange={(e) => setDataJson(e.target.value)}
-          className="w-full rounded-lg border border-zinc-700 bg-zinc-900 px-4 py-2.5 text-sm font-mono text-zinc-100 placeholder:text-zinc-500 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500/50 resize-none"
+          className="w-full bg-bg-input border border-border rounded-lg p-3 text-[0.875rem] font-mono text-text-primary placeholder:text-text-tertiary focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent-muted transition-[border-color] duration-150 resize-none"
           spellCheck={false}
         />
-        <p className="mt-1 text-xs text-zinc-500">
+        <p className="mt-2 text-[0.8125rem] text-text-tertiary">
           A SHA-256 hash of this data will be stored on-chain.
         </p>
       </div>
 
-      <div>
+      <hr className="border-border" />
+
+      {/* Expiry date */}
+      <div className="py-6">
         <label
           htmlFor="attest-expires"
-          className="block text-sm font-medium text-zinc-300 mb-1.5"
+          className="block text-[13px] font-medium text-text-secondary uppercase tracking-wider mb-2"
         >
-          Expiry date (optional)
+          Expiry date <span className="text-text-tertiary text-[11px] normal-case tracking-normal">(optional)</span>
         </label>
         <input
           id="attest-expires"
@@ -146,60 +156,71 @@ export function AttestForm() {
           value={expiresAt}
           min={new Date().toISOString().split('T')[0]}
           onChange={(e) => setExpiresAt(e.target.value)}
-          className="rounded-lg border border-zinc-700 bg-zinc-900 px-4 py-2.5 text-sm text-zinc-100 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500/50"
+          className="bg-bg-input border border-border rounded-lg h-10 px-3 text-[0.875rem] text-text-primary focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent-muted transition-[border-color] duration-150"
         />
       </div>
+
+      <hr className="border-border" />
 
       {/* Credential document upload (shown only when not encrypting) */}
       {!encrypt && (
-        <WalrusUpload
-          label="Credential document"
-          accept=".json,.txt,.md,.pdf"
-          onFile={handleCredentialFile}
-          onClear={handleCredentialClear}
-          disabled={isSubmitting}
-        />
+        <>
+          <div className="py-6">
+            <WalrusUpload
+              label="Credential document"
+              accept=".json,.txt,.md,.pdf"
+              onFile={handleCredentialFile}
+              onClear={handleCredentialClear}
+              disabled={isSubmitting}
+            />
+          </div>
+          <hr className="border-border" />
+        </>
       )}
 
       {/* SEAL Encryption Toggle */}
-      <div className="rounded-lg border border-zinc-700 bg-zinc-900/50 px-4 py-4">
-        <label className="flex items-start gap-3 cursor-pointer">
-          <div className="relative mt-0.5">
-            <input
-              id="attest-encrypt"
-              type="checkbox"
-              checked={encrypt}
-              onChange={(e) => setEncrypt(e.target.checked)}
-              className="sr-only peer"
-            />
-            <div className="w-10 h-6 rounded-full bg-zinc-700 peer-checked:bg-blue-600 transition-colors" />
-            <div className="absolute top-1 left-1 w-4 h-4 rounded-full bg-white transition-transform peer-checked:translate-x-4" />
-          </div>
-          <div>
-            <span className="text-sm font-medium text-zinc-100 flex items-center gap-2">
-              Encrypt attestation data
-              {encrypt && (
-                <span className="text-xs text-yellow-400 font-normal">
-                  SEAL threshold encryption
-                </span>
-              )}
-            </span>
-            <p className="text-xs text-zinc-500 mt-0.5">
-              When enabled, data is encrypted with SEAL so only the recipient can decrypt.
-              Requires 2 transactions (create allowlist + attest).
-            </p>
-          </div>
-        </label>
+      <div className="py-6">
+        <div className="bg-bg-surface border border-border rounded-xl p-5">
+          <label className="flex items-start gap-3 cursor-pointer">
+            <div className="relative mt-0.5">
+              <input
+                id="attest-encrypt"
+                type="checkbox"
+                checked={encrypt}
+                onChange={(e) => setEncrypt(e.target.checked)}
+                className="sr-only peer"
+              />
+              <div className="w-10 h-6 rounded-full bg-bg-hover peer-checked:bg-accent transition-colors duration-150" />
+              <div className="absolute top-1 left-1 w-4 h-4 rounded-full bg-text-primary transition-transform duration-150 peer-checked:translate-x-4" />
+            </div>
+            <div>
+              <span className="text-[0.875rem] font-medium text-text-primary flex items-center gap-2">
+                Encrypt attestation data
+                {encrypt && (
+                  <span className="inline-flex items-center rounded-md px-2 py-0.5 text-[11px] font-medium uppercase tracking-wide bg-encrypted/10 text-encrypted border border-encrypted/20">
+                    SEAL
+                  </span>
+                )}
+              </span>
+              <p className="text-[0.8125rem] text-text-secondary mt-1">
+                When enabled, data is encrypted with SEAL so only the recipient can decrypt.
+                Requires 2 transactions (create allowlist + attest).
+              </p>
+            </div>
+          </label>
+        </div>
       </div>
 
       {error && (
-        <p className="rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-400">
-          {error}
-        </p>
+        <div className="pb-6">
+          <p className="rounded-lg border border-revoked/30 bg-revoked/10 px-4 py-3 text-[0.875rem] text-revoked">
+            {error}
+          </p>
+        </div>
       )}
 
       {!isConnected && (
-        <p className="text-sm text-zinc-500">
+        <p className="pb-4 text-[0.875rem] text-text-secondary">
           Connect your wallet to submit.
         </p>
       )}
@@ -207,7 +228,7 @@ export function AttestForm() {
       <button
         type="submit"
         disabled={isSubmitting || !isConnected}
-        className="w-full rounded-lg bg-blue-600 px-4 py-3 text-sm font-semibold text-white hover:bg-blue-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        className="w-full bg-accent text-text-inverse h-10 rounded-lg text-[0.875rem] font-medium hover:bg-accent-hover transition-colors duration-150 disabled:opacity-40 disabled:cursor-not-allowed"
       >
         {isSubmitting
           ? encrypt
