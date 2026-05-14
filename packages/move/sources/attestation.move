@@ -9,43 +9,41 @@ use sui_attest::schema::SchemaRegistry;
 const MAX_DATA_HASH_LENGTH: u64 = 32; // SHA-256
 const MAX_REASON_LENGTH: u64 = 256;
 
-// ── Error Constants ───────────────────────────────────────
-const ENotAttester: u64 = 0;
-const EAlreadyRevoked: u64 = 1;
-const EExpired: u64 = 2;
-const ESchemaNotFound: u64 = 3;
-const ENotRevoked: u64 = 4;
-const ESelfAttestation: u64 = 5;
-const EInvalidExpiry: u64 = 6;
-const EInvalidDataHash: u64 = 7;
-const EReasonTooLong: u64 = 8;
-const EAttestationNotRegistered: u64 = 9;
+// ── Error Constants (100-range namespace) ─────────────────
+const ENotAttester: u64 = 100;
+const EAlreadyRevoked: u64 = 101;
+const EExpired: u64 = 102;
+const ESchemaNotFound: u64 = 103;
+const ENotRevoked: u64 = 104;
+const ESelfAttestation: u64 = 105;
+const EInvalidExpiry: u64 = 106;
+const EInvalidDataHash: u64 = 107;
+const EReasonTooLong: u64 = 108;
+const EAttestationNotRegistered: u64 = 109;
+const EEncryptedRequiresAllowlist: u64 = 110;
+const ENotValid: u64 = 111;
 
 // ── Types ─────────────────────────────────────────────────
 
-/// The core attestation object. Owned by the recipient.
-/// key + store = freely transferable.
 public struct Attestation has key, store {
     id: UID,
     schema_id: ID,
     attester: address,
     recipient: address,
-    data_hash: vector<u8>,         // SHA-256 of the attestation data
-    walrus_blob_id: Option<u256>,  // full credential doc on Walrus
-    created_at: u64,               // milliseconds (from Clock)
-    expires_at: Option<u64>,       // milliseconds, None = never expires
-    is_encrypted: bool,            // true if data is SEAL-encrypted
+    data_hash: vector<u8>,
+    walrus_blob_id: Option<u256>,
+    created_at: u64,
+    expires_at: Option<u64>,
+    is_encrypted: bool,
+    seal_allowlist_id: Option<ID>,
 }
 
-/// Shared revocation registry. Separate from attestations so attester
-/// can revoke without needing the recipient's owned object.
 public struct RevocationRegistry has key {
     id: UID,
     revocations: Table<ID, RevocationRecord>,
     attester_registry: Table<ID, address>,
 }
 
-/// Record of a revocation.
 public struct RevocationRecord has store {
     attester: address,
     revoked_at: u64,
@@ -59,8 +57,11 @@ public struct AttestationCreated has copy, drop {
     schema_id: ID,
     attester: address,
     recipient: address,
+    data_hash: vector<u8>,
     walrus_blob_id: Option<u256>,
     expires_at: Option<u64>,
+    is_encrypted: bool,
+    seal_allowlist_id: Option<ID>,
     timestamp: u64,
 }
 
@@ -73,7 +74,6 @@ public struct AttestationRevoked has copy, drop {
 
 // ── Module Initializer ────────────────────────────────────
 
-/// Module initializer — creates the shared RevocationRegistry.
 fun init(ctx: &mut TxContext) {
     let registry = RevocationRegistry {
         id: object::new(ctx),
@@ -85,8 +85,6 @@ fun init(ctx: &mut TxContext) {
 
 // ── Entry Functions ───────────────────────────────────────
 
-/// Issue an attestation. Creates an Attestation object and transfers
-/// it to the recipient. Validates schema exists.
 public entry fun attest(
     schema_registry: &SchemaRegistry,
     revocation_registry: &mut RevocationRegistry,
@@ -96,6 +94,7 @@ public entry fun attest(
     walrus_blob_id: Option<u256>,
     expires_at: Option<u64>,
     is_encrypted: bool,
+    seal_allowlist_id: Option<ID>,
     clock: &Clock,
     ctx: &mut TxContext,
 ) {
@@ -104,9 +103,12 @@ public entry fun attest(
     assert!(schema_registry.schema_exists(schema_id), ESchemaNotFound);
     assert!(data_hash.length() == MAX_DATA_HASH_LENGTH, EInvalidDataHash);
 
+    if (is_encrypted) {
+        assert!(seal_allowlist_id.is_some(), EEncryptedRequiresAllowlist);
+    };
+
     let timestamp = clock.timestamp_ms();
 
-    // Validate expiry is in the future if provided
     if (expires_at.is_some()) {
         assert!(*expires_at.borrow() > timestamp, EInvalidExpiry);
     };
@@ -124,6 +126,7 @@ public entry fun attest(
         created_at: timestamp,
         expires_at,
         is_encrypted,
+        seal_allowlist_id,
     };
 
     event::emit(AttestationCreated {
@@ -131,20 +134,19 @@ public entry fun attest(
         schema_id,
         attester,
         recipient,
+        data_hash: attestation.data_hash,
         walrus_blob_id,
         expires_at,
+        is_encrypted,
+        seal_allowlist_id,
         timestamp,
     });
 
     transfer::transfer(attestation, recipient);
 
-    // Register attester for revoke_by_id (doesn't need the owned Attestation object)
     revocation_registry.attester_registry.add(attestation_id, attester);
 }
 
-/// Revoke an attestation. Only the original attester can revoke.
-/// Checks the Attestation object to verify attester, then writes
-/// to the RevocationRegistry.
 public entry fun revoke(
     revocation_registry: &mut RevocationRegistry,
     attestation: &Attestation,
@@ -168,6 +170,10 @@ public entry fun revoke(
 
     revocation_registry.revocations.add(attestation_id, record);
 
+    if (revocation_registry.attester_registry.contains(attestation_id)) {
+        revocation_registry.attester_registry.remove(attestation_id);
+    };
+
     event::emit(AttestationRevoked {
         attestation_id,
         attester: attestation.attester,
@@ -176,8 +182,6 @@ public entry fun revoke(
     });
 }
 
-/// Revoke by attestation ID without needing the owned Attestation object.
-/// Uses the attester_registry to verify the caller is the original attester.
 public entry fun revoke_by_id(
     revocation_registry: &mut RevocationRegistry,
     attestation_id: ID,
@@ -201,6 +205,8 @@ public entry fun revoke_by_id(
 
     revocation_registry.revocations.add(attestation_id, record);
 
+    revocation_registry.attester_registry.remove(attestation_id);
+
     event::emit(AttestationRevoked {
         attestation_id,
         attester,
@@ -209,10 +215,24 @@ public entry fun revoke_by_id(
     });
 }
 
+public entry fun destroy(attestation: Attestation) {
+    let Attestation {
+        id,
+        schema_id: _,
+        attester: _,
+        recipient: _,
+        data_hash: _,
+        walrus_blob_id: _,
+        created_at: _,
+        expires_at: _,
+        is_encrypted: _,
+        seal_allowlist_id: _,
+    } = attestation;
+    object::delete(id);
+}
+
 // ── Public Read Functions ─────────────────────────────────
 
-/// Verify an attestation is valid (not revoked, not expired).
-/// Returns true if valid. Pure read-only function.
 public fun verify(
     revocation_registry: &RevocationRegistry,
     attestation: &Attestation,
@@ -220,12 +240,10 @@ public fun verify(
 ): bool {
     let attestation_id = object::uid_to_inner(&attestation.id);
 
-    // Check revocation
     if (revocation_registry.revocations.contains(attestation_id)) {
         return false
     };
 
-    // Check expiry
     if (attestation.expires_at.is_some()) {
         let expiry = *attestation.expires_at.borrow();
         if (clock.timestamp_ms() >= expiry) {
@@ -236,7 +254,14 @@ public fun verify(
     true
 }
 
-/// Check if a specific attestation ID has been revoked.
+public fun assert_valid(
+    revocation_registry: &RevocationRegistry,
+    attestation: &Attestation,
+    clock: &Clock,
+) {
+    assert!(verify(revocation_registry, attestation, clock), ENotValid);
+}
+
 public fun is_revoked(
     revocation_registry: &RevocationRegistry,
     attestation_id: ID,
@@ -276,6 +301,10 @@ public fun expires_at(attestation: &Attestation): &Option<u64> {
 
 public fun is_encrypted(attestation: &Attestation): bool {
     attestation.is_encrypted
+}
+
+public fun seal_allowlist_id(attestation: &Attestation): &Option<ID> {
+    &attestation.seal_allowlist_id
 }
 
 // ── Test Helpers ──────────────────────────────────────────

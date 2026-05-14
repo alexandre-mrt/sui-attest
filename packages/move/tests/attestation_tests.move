@@ -94,6 +94,7 @@ fun test_attest_happy_path() {
             option::none(),
             option::none(),
             false,
+            option::none(),
             &clock,
             scenario.ctx(),
         );
@@ -138,6 +139,7 @@ fun test_revoke_attestation() {
             option::none(),
             option::none(),
             false,
+            option::none(),
             &clock,
             scenario.ctx(),
         );
@@ -204,6 +206,7 @@ fun test_unauthorized_revoke() {
             option::none(),
             option::none(),
             false,
+            option::none(),
             &clock,
             scenario.ctx(),
         );
@@ -258,6 +261,7 @@ fun test_double_revoke() {
             option::none(),
             option::none(),
             false,
+            option::none(),
             &clock,
             scenario.ctx(),
         );
@@ -330,6 +334,7 @@ fun test_verify_valid_attestation() {
             option::none(),
             option::none(), // no expiry
             false,
+            option::none(),
             &clock,
             scenario.ctx(),
         );
@@ -376,6 +381,7 @@ fun test_verify_revoked_attestation() {
             option::none(),
             option::none(),
             false,
+            option::none(),
             &clock,
             scenario.ctx(),
         );
@@ -446,6 +452,7 @@ fun test_verify_expired_attestation() {
             option::none(),
             option::some(1000u64),
             false,
+            option::none(),
             &clock,
             scenario.ctx(),
         );
@@ -498,6 +505,7 @@ fun test_self_attestation_prevented() {
             option::none(),
             option::none(),
             false,
+            option::none(),
             &clock,
             scenario.ctx(),
         );
@@ -532,6 +540,7 @@ fun test_revoke_by_id() {
             option::none(),
             option::none(),
             false,
+            option::none(),
             &clock,
             scenario.ctx(),
         );

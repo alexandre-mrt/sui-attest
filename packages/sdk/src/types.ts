@@ -24,6 +24,7 @@ export interface Attestation {
 	createdAt: number;
 	expiresAt: number | null;
 	isEncrypted: boolean;
+	sealAllowlistId: string | null;
 }
 
 export interface VerificationResult {

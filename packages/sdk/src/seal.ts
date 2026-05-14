@@ -53,16 +53,26 @@ export interface EncryptAttestationResult {
 // ── Identity Helpers ───────────────────────────────────────────────────────
 
 /**
- * Build a SEAL allowlist identity: allowlist object ID (32 bytes) + random nonce (5 bytes).
- * The nonce ensures each encrypted blob has an independent IBE key, preventing
- * correlation between decryption events.
+ * Build a SEAL identity: allowlist ID (32 bytes) + attestation ID (32 bytes) + random nonce (5 bytes).
+ * The attestation ID allows seal_approve to check revocation status.
+ * The nonce ensures each encrypted blob has an independent IBE key.
  */
-export function buildAllowlistIdentity(allowlistId: string): string {
+export function buildAllowlistIdentity(
+	allowlistId: string,
+	attestationId?: string,
+): string {
 	const nonce = crypto.getRandomValues(new Uint8Array(5));
 	const idBytes = fromHex(
 		allowlistId.startsWith("0x") ? allowlistId.slice(2) : allowlistId,
 	);
-	return toHex(new Uint8Array([...idBytes, ...nonce]));
+	const attestBytes = attestationId
+		? fromHex(
+				attestationId.startsWith("0x")
+					? attestationId.slice(2)
+					: attestationId,
+			)
+		: new Uint8Array(0);
+	return toHex(new Uint8Array([...idBytes, ...attestBytes, ...nonce]));
 }
 
 /**
@@ -131,11 +141,12 @@ export async function encryptAttestation(
 
 /**
  * Build the PTB (as bytes) that calls seal_approve on the allowlist.
- * The PTB must contain ONLY seal_approve* calls — no other Move functions.
+ * Passes RevocationRegistry so seal_approve can check revocation status.
  */
 async function buildSealApprovePtb(
 	parsed: ReturnType<typeof EncryptedObject.parse>,
 	allowlistId: string,
+	revocationRegistryId: string,
 	suiClient: SealCompatibleClient,
 ): Promise<Uint8Array> {
 	const tx = new Transaction();
@@ -148,6 +159,7 @@ async function buildSealApprovePtb(
 		arguments: [
 			tx.pure.vector("u8", Array.from(sealIdBytes)),
 			tx.object(allowlistId),
+			tx.object(revocationRegistryId),
 		],
 	});
 
@@ -172,11 +184,12 @@ export async function decryptAttestation(
 	encryptedBytes: Uint8Array,
 	sessionKey: SessionKey,
 	suiClient: SealCompatibleClient,
+	revocationRegistryId: string,
 ): Promise<Uint8Array> {
 	const parsed = EncryptedObject.parse(encryptedBytes);
 	const allowlistId = parseAllowlistId(parsed.id);
 
-	const txBytes = await buildSealApprovePtb(parsed, allowlistId, suiClient);
+	const txBytes = await buildSealApprovePtb(parsed, allowlistId, revocationRegistryId, suiClient);
 
 	const decrypted = await sealClient.decrypt({
 		data: encryptedBytes,

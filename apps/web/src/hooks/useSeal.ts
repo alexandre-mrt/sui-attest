@@ -16,6 +16,7 @@ import { fromHex, toHex } from '@mysten/sui/utils';
 import {
   PACKAGE_ID,
   NETWORK,
+  REVOCATION_REGISTRY_ID,
   SEAL_KEY_SERVERS,
   SEAL_THRESHOLD,
   SESSION_KEY_TTL_MIN,
@@ -212,6 +213,7 @@ export function useSeal(): UseSealReturn {
         arguments: [
           tx.pure.vector('u8', Array.from(sealIdBytes)),
           tx.object(allowlistId),
+          tx.object(REVOCATION_REGISTRY_ID),
         ],
       });
 

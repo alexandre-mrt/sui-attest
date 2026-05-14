@@ -1,17 +1,19 @@
 module sui_attest::seal_policy;
 
-// ── Constants ─────────────────────────────────────────────
-const ENoAccess: u64 = 0;
-const EInvalidId: u64 = 1;
-const ETooManyVerifiers: u64 = 2;
+use sui_attest::attestation::RevocationRegistry;
+
+// ── Error Constants (300-range namespace) ─────────────────
+const ENoAccess: u64 = 300;
+const EInvalidId: u64 = 301;
+const ETooManyVerifiers: u64 = 302;
+const EAttestationRevoked: u64 = 303;
 
 const MAX_VERIFIERS: u64 = 256;
+const ATTESTATION_ID_OFFSET: u64 = 32;
+const ATTESTATION_ID_LENGTH: u64 = 32;
 
 // ── Types ─────────────────────────────────────────────────
 
-/// Allowlist for controlling who can decrypt encrypted attestations.
-/// The attester creates this and adds verifiers (including the recipient).
-/// Shared object so SEAL key servers can access it during dry-run.
 public struct AttestationAllowlist has key {
     id: UID,
     attester: address,
@@ -37,8 +39,6 @@ public struct VerifierRemoved has copy, drop {
 
 // ── Entry Functions ───────────────────────────────────────
 
-/// Create a new allowlist for encrypted attestations.
-/// The attester is automatically added as a verifier so they can always decrypt.
 public entry fun create_allowlist(ctx: &mut TxContext) {
     let attester = ctx.sender();
     let allowlist_uid = object::new(ctx);
@@ -54,8 +54,6 @@ public entry fun create_allowlist(ctx: &mut TxContext) {
     transfer::share_object(list);
 }
 
-/// Add a verifier to the allowlist.
-/// Only the original attester can add verifiers.
 public entry fun add_verifier(
     list: &mut AttestationAllowlist,
     verifier: address,
@@ -72,8 +70,6 @@ public entry fun add_verifier(
     };
 }
 
-/// Remove a verifier from the allowlist.
-/// Only the attester can remove verifiers. Attester cannot remove themselves.
 public entry fun remove_verifier(
     list: &mut AttestationAllowlist,
     verifier: address,
@@ -83,7 +79,7 @@ public entry fun remove_verifier(
     assert!(verifier != list.attester, ENoAccess);
     let (found, idx) = list.verifiers.index_of(&verifier);
     if (found) {
-        list.verifiers.remove(idx);
+        list.verifiers.swap_remove(idx);
         sui::event::emit(VerifierRemoved {
             allowlist_id: object::uid_to_inner(&list.id),
             verifier,
@@ -91,21 +87,27 @@ public entry fun remove_verifier(
     };
 }
 
-/// SEAL access policy function. Key servers call this via dry-run to determine
-/// if the caller has access to decrypt.
+/// SEAL access policy function. Key servers call this via dry-run.
 ///
-/// `id` = allowlist object ID bytes (32 bytes) ++ optional random nonce
-/// This is `entry` (not `public`) for upgradeability — existing ciphertexts
-/// still reference the original packageId and this function signature.
-/// No state writes — runs as dry-run only.
+/// `id` format: allowlist_id (32 bytes) ++ attestation_id (32 bytes) [++ optional nonce]
+/// When attestation_id is present (bytes 32..64), checks revocation status.
 entry fun seal_approve(
     id: vector<u8>,
     list: &AttestationAllowlist,
+    revocation_registry: &RevocationRegistry,
     ctx: &TxContext,
 ) {
     let list_id_bytes = object::uid_to_inner(&list.id).to_bytes();
     assert!(is_prefix(list_id_bytes, id), EInvalidId);
     assert!(list.verifiers.contains(&ctx.sender()), ENoAccess);
+
+    if (id.length() >= ATTESTATION_ID_OFFSET + ATTESTATION_ID_LENGTH) {
+        let attestation_id = extract_id(id, ATTESTATION_ID_OFFSET);
+        assert!(
+            !sui_attest::attestation::is_revoked(revocation_registry, attestation_id),
+            EAttestationRevoked,
+        );
+    };
 }
 
 // ── Read Functions ────────────────────────────────────────
@@ -132,6 +134,16 @@ fun is_prefix(prefix: vector<u8>, data: vector<u8>): bool {
         i = i + 1;
     };
     true
+}
+
+fun extract_id(data: vector<u8>, offset: u64): ID {
+    let mut id_bytes = vector::empty<u8>();
+    let mut i = 0;
+    while (i < 32) {
+        id_bytes.push_back(data[offset + i]);
+        i = i + 1;
+    };
+    object::id_from_bytes(id_bytes)
 }
 
 // ── Test Helpers ──────────────────────────────────────────

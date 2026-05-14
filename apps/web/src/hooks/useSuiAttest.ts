@@ -109,10 +109,12 @@ export function useSuiAttest() {
 
     let walrusBlobIdBigInt: bigint | null = null;
     let isEncrypted = false;
+    let sealAllowlistId: string | null = null;
 
     if (encrypt) {
       // Encrypted flow: create allowlist → add recipient → encrypt → upload to Walrus
       const allowlistId = await seal.createAllowlist();
+      sealAllowlistId = allowlistId;
 
       // Wait for key server propagation (SEAL anti-pattern: lag after object creation)
       await new Promise((r) => setTimeout(r, 3000));
@@ -159,6 +161,7 @@ export function useSuiAttest() {
         tx.pure.option('u256', walrusBlobIdBigInt),
         tx.pure.option('u64', expiresAtMs),
         tx.pure.bool(isEncrypted),
+        tx.pure.option('address', sealAllowlistId),
         tx.object(CLOCK_ID),
       ],
     });

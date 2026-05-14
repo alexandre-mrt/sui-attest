@@ -297,6 +297,7 @@ export class SuiAttestClient {
 		walrusDoc?: Uint8Array;
 		signer?: Signer;
 		isEncrypted?: boolean;
+		sealAllowlistId?: string | null;
 	}): Promise<{ transaction: Transaction; dataHash: string; walrusBlobId?: string }> {
 		let resolvedBlobId: string | null = params.walrusBlobId ?? null;
 
@@ -324,6 +325,8 @@ export class SuiAttestClient {
 
 		const expiresAt = params.expiresAt ?? null;
 
+		const sealAllowlistId = params.sealAllowlistId ?? null;
+
 		tx.moveCall({
 			target: `${this.config.packageId}::${MODULE_ATTESTATION}::attest`,
 			arguments: [
@@ -335,6 +338,7 @@ export class SuiAttestClient {
 				tx.pure.option("u256", walrusBlobId),
 				tx.pure.option("u64", expiresAt != null ? BigInt(expiresAt) : null),
 				tx.pure.bool(params.isEncrypted ?? false),
+				tx.pure.option("address", sealAllowlistId),
 				tx.object(CLOCK_OBJECT_ID),
 			],
 		});

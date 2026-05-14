@@ -108,6 +108,10 @@ export function parseAttestationFields(
 	const expiresAtOption = parseOption<unknown>(fields.expires_at);
 	const expiresAt = expiresAtOption != null ? Number(expiresAtOption) : null;
 
+	const sealAllowlistIdOption = parseOption<unknown>(fields.seal_allowlist_id);
+	const sealAllowlistId =
+		sealAllowlistIdOption != null ? String(sealAllowlistIdOption) : null;
+
 	return {
 		id,
 		schemaId: String(fields.schema_id ?? ""),
@@ -118,6 +122,7 @@ export function parseAttestationFields(
 		createdAt: Number(fields.created_at ?? 0),
 		expiresAt,
 		isEncrypted: Boolean(fields.is_encrypted),
+		sealAllowlistId,
 	};
 }
 
