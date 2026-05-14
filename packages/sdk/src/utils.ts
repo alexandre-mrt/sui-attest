@@ -1,14 +1,38 @@
 import type { FieldDefinition } from "./types.js";
 
 /**
+ * Deterministic JSON serialization — recursively sorts all object keys.
+ * Ensures identical hash output regardless of key insertion order at any depth.
+ */
+export function stableStringify(obj: unknown): string {
+	if (obj === null || typeof obj !== "object") return JSON.stringify(obj);
+	if (Array.isArray(obj))
+		return "[" + obj.map(stableStringify).join(",") + "]";
+	const sorted = Object.keys(obj as Record<string, unknown>).sort();
+	return (
+		"{" +
+		sorted
+			.map(
+				(k) =>
+					JSON.stringify(k) +
+					":" +
+					stableStringify((obj as Record<string, unknown>)[k]),
+			)
+			.join(",") +
+		"}"
+	);
+}
+
+/**
  * Compute SHA-256 hash of the JSON-serialized attestation data.
+ * Uses stableStringify for deterministic key ordering at all depths.
  * Returns the hash as a hex string and as a Uint8Array.
  */
 export async function hashData(data: Record<string, unknown>): Promise<{
 	hex: string;
 	bytes: Uint8Array;
 }> {
-	const json = JSON.stringify(data, Object.keys(data).sort());
+	const json = stableStringify(data);
 	const encoded = new TextEncoder().encode(json);
 	const hashBuffer = await crypto.subtle.digest("SHA-256", encoded);
 	const bytes = new Uint8Array(hashBuffer);

@@ -98,7 +98,7 @@ public entry fun attest(
     let attester = ctx.sender();
     assert!(attester != recipient, ESelfAttestation);
     assert!(schema_registry.schema_exists(schema_id), ESchemaNotFound);
-    assert!(data_hash.length() <= MAX_DATA_HASH_LENGTH, EInvalidDataHash);
+    assert!(data_hash.length() == MAX_DATA_HASH_LENGTH, EInvalidDataHash);
 
     let timestamp = clock.timestamp_ms();
 

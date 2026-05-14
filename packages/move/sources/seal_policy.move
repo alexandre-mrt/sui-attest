@@ -3,6 +3,9 @@ module sui_attest::seal_policy;
 // ── Constants ─────────────────────────────────────────────
 const ENoAccess: u64 = 0;
 const EInvalidId: u64 = 1;
+const ETooManyVerifiers: u64 = 2;
+
+const MAX_VERIFIERS: u64 = 256;
 
 // ── Types ─────────────────────────────────────────────────
 
@@ -59,6 +62,7 @@ public entry fun add_verifier(
     ctx: &mut TxContext,
 ) {
     assert!(list.attester == ctx.sender(), ENoAccess);
+    assert!(list.verifiers.length() < MAX_VERIFIERS, ETooManyVerifiers);
     if (!list.verifiers.contains(&verifier)) {
         list.verifiers.push_back(verifier);
         sui::event::emit(VerifierAdded {

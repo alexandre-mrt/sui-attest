@@ -41,12 +41,35 @@ export function parseOption<T>(option: { vec: T[] } | null | undefined): T | nul
 }
 
 /**
- * Compute a simple SHA-256 hash of data and return as hex string.
+ * Deterministic JSON serialization — recursively sorts all object keys.
+ * Must match the SDK's stableStringify for consistent data hashes.
+ */
+export function stableStringify(obj: unknown): string {
+  if (obj === null || typeof obj !== 'object') return JSON.stringify(obj);
+  if (Array.isArray(obj)) return '[' + obj.map(stableStringify).join(',') + ']';
+  const sorted = Object.keys(obj as Record<string, unknown>).sort();
+  return '{' + sorted.map((k) => JSON.stringify(k) + ':' + stableStringify((obj as Record<string, unknown>)[k])).join(',') + '}';
+}
+
+/**
+ * Compute SHA-256 hash of attestation data with deterministic key ordering.
  */
 export async function sha256Hex(data: Uint8Array<ArrayBuffer>): Promise<string> {
   const hashBuffer = await crypto.subtle.digest('SHA-256', data);
   const hashArray = Array.from(new Uint8Array(hashBuffer));
   return hashArray.map((b) => b.toString(16).padStart(2, '0')).join('');
+}
+
+/**
+ * Hash attestation data deterministically — matches SDK hashData().
+ */
+export async function hashAttestData(data: Record<string, unknown>): Promise<{ hex: string; bytes: Uint8Array }> {
+  const json = stableStringify(data);
+  const encoded = new TextEncoder().encode(json);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', encoded);
+  const bytes = new Uint8Array(hashBuffer);
+  const hex = Array.from(bytes).map((b) => b.toString(16).padStart(2, '0')).join('');
+  return { hex, bytes };
 }
 
 /**

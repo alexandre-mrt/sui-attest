@@ -14,7 +14,7 @@ import {
   WALRUS_EPOCHS,
 } from '@/lib/constants';
 import type { CreateSchemaFormData, AttestFormData } from '@/lib/types';
-import { sha256Hex } from '@/lib/utils';
+import { hashAttestData } from '@/lib/utils';
 import { useSeal } from './useSeal';
 
 const MAX_WALRUS_RETRIES = 3;
@@ -118,7 +118,8 @@ export function useSuiAttest() {
       await seal.addVerifier(allowlistId, recipient);
 
       // Encrypt the attestation data
-      const dataBytes = new TextEncoder().encode(JSON.stringify(attestData));
+      const { stableStringify } = await import('@/lib/utils');
+      const dataBytes = new TextEncoder().encode(stableStringify(attestData));
       const { encryptedBytes } = await seal.encrypt(dataBytes, allowlistId);
 
       // Upload encrypted bytes to Walrus
@@ -137,11 +138,8 @@ export function useSuiAttest() {
       walrusBlobIdBigInt = await walrusUpload(walrusClient, credentialDoc, signer);
     }
 
-    const dataBytes = new TextEncoder().encode(JSON.stringify(attestData));
-    const dataHashHex = await sha256Hex(dataBytes as Uint8Array<ArrayBuffer>);
-    const dataHashArray = Array.from(
-      dataHashHex.match(/.{1,2}/g)!.map((b) => parseInt(b, 16)),
-    );
+    const { hex: dataHashHex, bytes: dataHashBytes } = await hashAttestData(attestData);
+    const dataHashArray = Array.from(dataHashBytes);
 
     const expiresAtMs: bigint | null =
       expiresAt ? BigInt(new Date(expiresAt).getTime()) : null;
