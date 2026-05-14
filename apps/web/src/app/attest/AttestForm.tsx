@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useWalletConnection } from '@mysten/dapp-kit-react';
+import { WalrusUpload } from '@/components/WalrusUpload';
 import { useSuiAttest } from '@/hooks/useSuiAttest';
 
 export function AttestForm() {
@@ -16,6 +17,7 @@ export function AttestForm() {
   const [dataJson, setDataJson] = useState('{\n  \n}');
   const [expiresAt, setExpiresAt] = useState('');
   const [encrypt, setEncrypt] = useState(false);
+  const [credentialDoc, setCredentialDoc] = useState<Uint8Array | undefined>(undefined);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -23,6 +25,14 @@ export function AttestForm() {
     const sid = searchParams.get('schemaId');
     if (sid) setSchemaId(sid);
   }, [searchParams]);
+
+  const handleCredentialFile = useCallback((bytes: Uint8Array) => {
+    setCredentialDoc(bytes);
+  }, []);
+
+  const handleCredentialClear = useCallback(() => {
+    setCredentialDoc(undefined);
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -49,6 +59,7 @@ export function AttestForm() {
         data: parsedData,
         expiresAt,
         encrypt,
+        credentialDoc: encrypt ? undefined : credentialDoc,
       });
       router.push(`/explorer?tx=${digest}`);
     } catch (err) {
@@ -138,6 +149,17 @@ export function AttestForm() {
           className="rounded-lg border border-zinc-700 bg-zinc-900 px-4 py-2.5 text-sm text-zinc-100 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500/50"
         />
       </div>
+
+      {/* Credential document upload (shown only when not encrypting) */}
+      {!encrypt && (
+        <WalrusUpload
+          label="Credential document"
+          accept=".json,.txt,.md,.pdf"
+          onFile={handleCredentialFile}
+          onClear={handleCredentialClear}
+          disabled={isSubmitting}
+        />
+      )}
 
       {/* SEAL Encryption Toggle */}
       <div className="rounded-lg border border-zinc-700 bg-zinc-900/50 px-4 py-4">

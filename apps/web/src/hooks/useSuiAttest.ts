@@ -1,22 +1,61 @@
 'use client';
 
 import { useDAppKit } from '@mysten/dapp-kit-react';
+import { CurrentAccountSigner } from '@mysten/dapp-kit-core';
+import { WalrusClient, RetryableWalrusClientError, blobIdToInt } from '@mysten/walrus';
+import { SuiJsonRpcClient } from '@mysten/sui/jsonRpc';
 import { Transaction } from '@mysten/sui/transactions';
 import {
   PACKAGE_ID,
   SCHEMA_REGISTRY_ID,
   CLOCK_ID,
+  NETWORK,
+  SUI_RPC_URLS,
+  WALRUS_EPOCHS,
 } from '@/lib/constants';
 import type { CreateSchemaFormData, AttestFormData } from '@/lib/types';
 import { sha256Hex } from '@/lib/utils';
 import { useSeal } from './useSeal';
+
+const MAX_WALRUS_RETRIES = 3;
+
+/**
+ * Upload bytes to Walrus using the writeBlob API.
+ * Returns the blobId as a bigint (u256) or null on failure.
+ */
+async function walrusUpload(
+  client: WalrusClient,
+  data: Uint8Array,
+  signer: InstanceType<typeof CurrentAccountSigner>,
+): Promise<bigint | null> {
+  let lastError: Error | null = null;
+  for (let attempt = 0; attempt < MAX_WALRUS_RETRIES; attempt++) {
+    try {
+      const { blobId } = await client.writeBlob({
+        blob: data,
+        deletable: false,
+        epochs: WALRUS_EPOCHS,
+        signer,
+      });
+      return blobIdToInt(blobId);
+    } catch (err) {
+      if (err instanceof RetryableWalrusClientError) {
+        client.reset();
+        lastError = err instanceof Error ? err : new Error(String(err));
+        continue;
+      }
+      throw err;
+    }
+  }
+  throw lastError ?? new Error('Walrus upload failed after max retries');
+}
 
 export function useSuiAttest() {
   const dAppKit = useDAppKit();
   const seal = useSeal();
 
   const createSchema = async (data: CreateSchemaFormData): Promise<string> => {
-    const { name, description, fields } = data;
+    const { name, description, fields, schemaDoc } = data;
 
     if (!name.trim()) throw new Error('Schema name is required');
     if (fields.length === 0) throw new Error('At least one field is required');
@@ -27,6 +66,15 @@ export function useSuiAttest() {
     const fieldNames: number[][] = fields.map((f) => Array.from(encoder.encode(f.name)));
     const fieldTypes: number[][] = fields.map((f) => Array.from(encoder.encode(f.fieldType)));
     const fieldRequired: boolean[] = fields.map((f) => f.required);
+
+    // Upload schema document to Walrus if provided
+    let walrusBlobIdBigInt: bigint | null = null;
+    if (schemaDoc != null && schemaDoc.length > 0 && (NETWORK === 'testnet' || NETWORK === 'mainnet')) {
+      const suiClient = new SuiJsonRpcClient({ network: NETWORK, url: SUI_RPC_URLS[NETWORK] });
+      const walrusClient = new WalrusClient({ network: NETWORK, suiClient });
+      const signer = new CurrentAccountSigner(dAppKit);
+      walrusBlobIdBigInt = await walrusUpload(walrusClient, schemaDoc, signer);
+    }
 
     const tx = new Transaction();
 
@@ -39,7 +87,7 @@ export function useSuiAttest() {
         tx.pure('vector<vector<u8>>', fieldNames),
         tx.pure('vector<vector<u8>>', fieldTypes),
         tx.pure('vector<bool>', fieldRequired),
-        tx.pure.option('u256', null),
+        tx.pure.option('u256', walrusBlobIdBigInt),
         tx.object(CLOCK_ID),
       ],
     });
@@ -52,7 +100,7 @@ export function useSuiAttest() {
   };
 
   const issueAttestation = async (data: AttestFormData): Promise<string> => {
-    const { schemaId, recipient, data: attestData, expiresAt, encrypt } = data;
+    const { schemaId, recipient, data: attestData, expiresAt, encrypt, credentialDoc } = data;
 
     if (!schemaId.trim()) throw new Error('Schema ID is required');
     if (!recipient.trim()) throw new Error('Recipient address is required');
@@ -61,11 +109,7 @@ export function useSuiAttest() {
     let isEncrypted = false;
 
     if (encrypt) {
-      // Encrypted flow: create allowlist → add recipient → encrypt → (Walrus upload skipped for now)
-      // Walrus upload is not implemented in this iteration.
-      // The encrypted bytes are generated but not uploaded. This requires Walrus client setup.
-      // For now we create the allowlist and set isEncrypted=true without uploading.
-
+      // Encrypted flow: create allowlist → add recipient → encrypt → upload to Walrus
       const allowlistId = await seal.createAllowlist();
 
       // Wait for key server propagation (SEAL anti-pattern: lag after object creation)
@@ -75,11 +119,22 @@ export function useSuiAttest() {
 
       // Encrypt the attestation data
       const dataBytes = new TextEncoder().encode(JSON.stringify(attestData));
-      const { encryptedBytes: _encryptedBytes } = await seal.encrypt(dataBytes, allowlistId);
+      const { encryptedBytes } = await seal.encrypt(dataBytes, allowlistId);
 
-      // TODO: upload _encryptedBytes to Walrus and set walrusBlobIdBigInt
-      // walrusBlobIdBigInt = BigInt('0x' + walrusUpload(_encryptedBytes));
+      // Upload encrypted bytes to Walrus
+      if (NETWORK === 'testnet' || NETWORK === 'mainnet') {
+        const suiClient = new SuiJsonRpcClient({ network: NETWORK, url: SUI_RPC_URLS[NETWORK] });
+        const walrusClient = new WalrusClient({ network: NETWORK, suiClient });
+        const signer = new CurrentAccountSigner(dAppKit);
+        walrusBlobIdBigInt = await walrusUpload(walrusClient, encryptedBytes, signer);
+      }
       isEncrypted = true;
+    } else if (credentialDoc != null && credentialDoc.length > 0 && (NETWORK === 'testnet' || NETWORK === 'mainnet')) {
+      // Plain credential document upload
+      const suiClient = new SuiJsonRpcClient({ network: NETWORK, url: SUI_RPC_URLS[NETWORK] });
+      const walrusClient = new WalrusClient({ network: NETWORK, suiClient });
+      const signer = new CurrentAccountSigner(dAppKit);
+      walrusBlobIdBigInt = await walrusUpload(walrusClient, credentialDoc, signer);
     }
 
     const dataBytes = new TextEncoder().encode(JSON.stringify(attestData));

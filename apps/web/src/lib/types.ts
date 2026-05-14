@@ -68,6 +68,8 @@ export interface CreateSchemaFormData {
   name: string;
   description: string;
   fields: FieldDefinition[];
+  /** Optional schema document to store on Walrus (bytes from file input) */
+  schemaDoc?: Uint8Array;
 }
 
 export interface AttestFormData {
@@ -77,4 +79,6 @@ export interface AttestFormData {
   expiresAt: string; // ISO date string or empty
   /** When true, attestation data is SEAL-encrypted before storing */
   encrypt?: boolean;
+  /** Optional credential document to store on Walrus (bytes from file input) */
+  credentialDoc?: Uint8Array;
 }

@@ -1,9 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useWalletConnection } from '@mysten/dapp-kit-react';
 import { FieldBuilder } from '@/components/FieldBuilder';
+import { WalrusUpload } from '@/components/WalrusUpload';
 import { useSuiAttest } from '@/hooks/useSuiAttest';
 import type { FieldDefinition } from '@/lib/types';
 
@@ -15,8 +16,17 @@ export function CreateSchemaForm() {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [fields, setFields] = useState<FieldDefinition[]>([]);
+  const [schemaDoc, setSchemaDoc] = useState<Uint8Array | undefined>(undefined);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const handleDocFile = useCallback((bytes: Uint8Array) => {
+    setSchemaDoc(bytes);
+  }, []);
+
+  const handleDocClear = useCallback(() => {
+    setSchemaDoc(undefined);
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -29,7 +39,7 @@ export function CreateSchemaForm() {
     setError(null);
 
     try {
-      const digest = await createSchema({ name, description, fields });
+      const digest = await createSchema({ name, description, fields, schemaDoc });
       router.push(`/schemas?tx=${digest}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Transaction failed');
@@ -84,6 +94,14 @@ export function CreateSchemaForm() {
         <FieldBuilder fields={fields} onChange={setFields} />
       </div>
 
+      <WalrusUpload
+        label="Schema document"
+        accept=".json,.txt,.md,.pdf"
+        onFile={handleDocFile}
+        onClear={handleDocClear}
+        disabled={isSubmitting}
+      />
+
       {error && (
         <p className="rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-400">
           {error}
@@ -101,7 +119,7 @@ export function CreateSchemaForm() {
         disabled={isSubmitting || !isConnected}
         className="w-full rounded-lg bg-blue-600 px-4 py-3 text-sm font-semibold text-white hover:bg-blue-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
       >
-        {isSubmitting ? 'Submitting transaction...' : 'Create schema'}
+        {isSubmitting ? 'Submitting...' : 'Create schema'}
       </button>
     </form>
   );
