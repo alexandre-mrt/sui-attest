@@ -86,34 +86,35 @@ export default async function SchemasPage() {
   const schemas = await fetchSchemas();
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+    <div className="max-w-[1120px] mx-auto px-6 py-16 animate-in">
       <div className="flex items-center justify-between mb-8">
-        <div>
-          <h1 className="text-2xl font-bold text-zinc-100">Schemas</h1>
-          <p className="text-sm text-zinc-500 mt-1">
-            Attestation schema definitions registered on-chain
-          </p>
-        </div>
+        <h1 className="text-[1.75rem] font-medium text-text-primary leading-[1.3]">
+          Schemas
+        </h1>
         <Link
           href="/schemas/create"
-          className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-500 transition-colors"
+          className="inline-flex items-center h-10 rounded-lg border border-border px-4 text-sm font-medium text-text-primary hover:bg-bg-hover hover:border-border-hover transition-all duration-150"
         >
           Create schema
         </Link>
       </div>
 
+      <div className="border-t border-border mb-8" />
+
       {schemas.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-zinc-800 py-16 text-center">
-          <p className="text-zinc-500">No schemas found.</p>
+        <div className="rounded-xl border border-dashed border-border py-16 text-center">
+          <p className="font-display italic text-text-secondary text-lg">
+            No schemas yet
+          </p>
           <Link
             href="/schemas/create"
-            className="mt-4 inline-block text-sm text-blue-400 hover:text-blue-300"
+            className="mt-4 inline-block text-sm text-text-secondary hover:text-text-primary transition-colors duration-150"
           >
             Create the first schema
           </Link>
         </div>
       ) : (
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 stagger">
           {schemas.map((schema) => (
             <SchemaCard key={schema.id} schema={schema} />
           ))}
