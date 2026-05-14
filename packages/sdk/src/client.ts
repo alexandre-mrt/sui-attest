@@ -1,6 +1,8 @@
 import { SuiGrpcClient } from "@mysten/sui/grpc";
 import { SuiGraphQLClient } from "@mysten/sui/graphql";
 import { Transaction } from "@mysten/sui/transactions";
+import type { Signer } from "@mysten/sui/cryptography";
+import { WalrusClient } from "@mysten/walrus";
 
 import type {
 	SuiAttestConfig,
@@ -15,6 +17,7 @@ import {
 	GRPC_URLS,
 	GRAPHQL_ENDPOINTS,
 	CLOCK_OBJECT_ID,
+	WALRUS_EPOCHS,
 } from "./constants.js";
 import {
 	parseSchemaRecord,
@@ -22,6 +25,7 @@ import {
 	parseOption,
 } from "./parsing.js";
 import { hashData, buildFieldDefinitions, encodeString } from "./utils.js";
+import { uploadToWalrus, readFromWalrus } from "./walrus.js";
 
 // Unused import suppression — parseOption is re-exported from index
 void parseOption;
@@ -67,6 +71,7 @@ export class SuiAttestClient {
 	readonly grpc: SuiGrpcClient;
 	readonly gql: SuiGraphQLClient;
 	readonly config: SuiAttestConfig;
+	readonly #walrus: WalrusClient | null;
 
 	constructor(config: SuiAttestConfig) {
 		this.config = config;
@@ -83,20 +88,71 @@ export class SuiAttestClient {
 			network: config.network,
 			url: gqlUrl,
 		});
+
+		// Walrus only supports mainnet and testnet
+		if (config.network === "mainnet" || config.network === "testnet") {
+			this.#walrus = new WalrusClient({
+				network: config.network,
+				suiClient: this.grpc,
+			});
+		} else {
+			this.#walrus = null;
+		}
+	}
+
+	// ── Walrus Operations (F004) ───────────────────────────────────────────
+
+	/**
+	 * Upload a document to Walrus and return the blob ID.
+	 * Requires a signer to pay for storage. Only available on mainnet/testnet.
+	 */
+	async uploadToWalrus(data: Uint8Array, signer: Signer): Promise<string> {
+		if (!this.#walrus) {
+			throw new Error(
+				`Walrus is not available on network: ${this.config.network}. Use mainnet or testnet.`,
+			);
+		}
+		return uploadToWalrus(this.#walrus, data, signer, WALRUS_EPOCHS);
+	}
+
+	/**
+	 * Read a document from Walrus by its blob ID.
+	 * Only available on mainnet/testnet.
+	 */
+	async readFromWalrus(blobId: string): Promise<Uint8Array> {
+		if (!this.#walrus) {
+			throw new Error(
+				`Walrus is not available on network: ${this.config.network}. Use mainnet or testnet.`,
+			);
+		}
+		return readFromWalrus(this.#walrus, blobId);
 	}
 
 	// ── Schema Operations ──────────────────────────────────────────────────
 
 	/**
 	 * Build a Transaction to create a schema on-chain.
-	 * The caller must sign and execute this transaction.
+	 * If `walrusDoc` is provided along with a `signer`, the schema JSON is
+	 * uploaded to Walrus first and the returned blob ID is stored on-chain.
+	 * The caller must sign and execute the returned transaction.
 	 */
 	async createSchema(params: {
 		name: string;
 		description: string;
 		fields: FieldDefinition[];
 		walrusBlobId?: string | null;
-	}): Promise<Transaction> {
+		walrusDoc?: Uint8Array;
+		signer?: Signer;
+	}): Promise<{ transaction: Transaction; walrusBlobId?: string }> {
+		let resolvedBlobId: string | null = params.walrusBlobId ?? null;
+
+		if (params.walrusDoc != null && params.signer != null) {
+			resolvedBlobId = await this.uploadToWalrus(
+				params.walrusDoc,
+				params.signer,
+			);
+		}
+
 		const tx = new Transaction();
 		const { fieldNames, fieldTypes, fieldRequired } = buildFieldDefinitions(
 			params.fields,
@@ -107,11 +163,11 @@ export class SuiAttestClient {
 
 		// walrus_blob_id: Option<u256>
 		const walrusBlobId =
-			params.walrusBlobId != null
+			resolvedBlobId != null
 				? BigInt(
-						params.walrusBlobId.startsWith("0x")
-							? params.walrusBlobId
-							: "0x" + params.walrusBlobId,
+						resolvedBlobId.startsWith("0x")
+							? resolvedBlobId
+							: "0x" + resolvedBlobId,
 					)
 				: null;
 
@@ -129,7 +185,10 @@ export class SuiAttestClient {
 			],
 		});
 
-		return tx;
+		return {
+			transaction: tx,
+			...(resolvedBlobId != null ? { walrusBlobId: resolvedBlobId } : {}),
+		};
 	}
 
 	/**
@@ -224,7 +283,9 @@ export class SuiAttestClient {
 
 	/**
 	 * Build a Transaction to issue an attestation.
-	 * Returns the transaction and the computed data hash.
+	 * If `walrusDoc` is provided along with a `signer`, the credential document
+	 * is uploaded to Walrus first and the blob ID is stored on-chain.
+	 * Returns the transaction, computed data hash, and optional Walrus blob ID.
 	 */
 	async attest(params: {
 		schemaId: string;
@@ -232,8 +293,19 @@ export class SuiAttestClient {
 		data: Record<string, unknown>;
 		expiresAt?: number | null;
 		walrusBlobId?: string | null;
+		walrusDoc?: Uint8Array;
+		signer?: Signer;
 		isEncrypted?: boolean;
-	}): Promise<{ transaction: Transaction; dataHash: string }> {
+	}): Promise<{ transaction: Transaction; dataHash: string; walrusBlobId?: string }> {
+		let resolvedBlobId: string | null = params.walrusBlobId ?? null;
+
+		if (params.walrusDoc != null && params.signer != null) {
+			resolvedBlobId = await this.uploadToWalrus(
+				params.walrusDoc,
+				params.signer,
+			);
+		}
+
 		const { hex: dataHashHex, bytes: dataHashBytes } = await hashData(
 			params.data,
 		);
@@ -241,11 +313,11 @@ export class SuiAttestClient {
 		const tx = new Transaction();
 
 		const walrusBlobId =
-			params.walrusBlobId != null
+			resolvedBlobId != null
 				? BigInt(
-						params.walrusBlobId.startsWith("0x")
-							? params.walrusBlobId
-							: "0x" + params.walrusBlobId,
+						resolvedBlobId.startsWith("0x")
+							? resolvedBlobId
+							: "0x" + resolvedBlobId,
 					)
 				: null;
 
@@ -266,7 +338,11 @@ export class SuiAttestClient {
 			],
 		});
 
-		return { transaction: tx, dataHash: dataHashHex };
+		return {
+			transaction: tx,
+			dataHash: dataHashHex,
+			...(resolvedBlobId != null ? { walrusBlobId: resolvedBlobId } : {}),
+		};
 	}
 
 	/**

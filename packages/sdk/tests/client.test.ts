@@ -335,36 +335,39 @@ describe("SuiAttestClient", () => {
 	// ── createSchema transaction building ──────────────────────────────────
 
 	describe("createSchema", () => {
-		it("returns a Transaction object", async () => {
-			const tx = await client.createSchema({
+		it("returns a transaction and optional walrusBlobId", async () => {
+			const result = await client.createSchema({
 				name: "KYC Schema",
 				description: "KYC verification attestation",
 				fields: SAMPLE_FIELDS,
 			});
-			expect(tx).toBeDefined();
+			expect(result).toBeDefined();
+			expect(result.transaction).toBeDefined();
 			// Transaction has a getData() method
-			expect(typeof tx.getData).toBe("function");
+			expect(typeof result.transaction.getData).toBe("function");
+			expect(result.walrusBlobId).toBeUndefined();
 		});
 
 		it("builds transaction without walrusBlobId", async () => {
-			const tx = await client.createSchema({
+			const { transaction } = await client.createSchema({
 				name: "Test",
 				description: "Desc",
 				fields: [{ name: "x", fieldType: "string", required: true }],
 			});
-			const data = tx.getData();
+			const data = transaction.getData();
 			expect(data).toBeDefined();
 		});
 
 		it("builds transaction with walrusBlobId", async () => {
-			const tx = await client.createSchema({
+			const { transaction, walrusBlobId } = await client.createSchema({
 				name: "Test",
 				description: "Desc",
 				fields: [{ name: "x", fieldType: "string", required: true }],
 				walrusBlobId: "0xff",
 			});
-			const data = tx.getData();
+			const data = transaction.getData();
 			expect(data).toBeDefined();
+			expect(walrusBlobId).toBe("0xff");
 		});
 	});
 

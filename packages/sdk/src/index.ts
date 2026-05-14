@@ -30,6 +30,11 @@ export {
 	parseBytesAsHex,
 	parseU256AsHex,
 } from "./parsing.js";
+export {
+	createWalrusClient,
+	uploadToWalrus,
+	readFromWalrus,
+} from "./walrus.js";
 export type { SealConfig, EncryptAttestationResult } from "./seal.js";
 export {
 	buildAllowlistIdentity,

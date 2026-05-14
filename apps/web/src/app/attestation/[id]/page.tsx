@@ -1,6 +1,7 @@
 import { SuiJsonRpcClient } from '@mysten/sui/jsonRpc';
 import { StatusBadge, deriveStatus } from '@/components/StatusBadge';
 import { DecryptButton } from '@/components/DecryptButton';
+import { WalrusDocViewer } from '@/components/WalrusDocViewer';
 import { SUI_RPC_URLS, PACKAGE_ID, REVOCATION_REGISTRY_ID } from '@/lib/constants';
 import { truncateAddress, formatTimestamp } from '@/lib/utils';
 import type { Attestation } from '@/lib/types';
@@ -120,6 +121,16 @@ export default async function AttestationDetailPage({ params }: Props) {
           )}
         </dl>
       </div>
+
+      {/* F004: Walrus credential document viewer — shown for non-encrypted attestations */}
+      {!attestation.isEncrypted && attestation.walrusBlobId && (
+        <div className="mt-6">
+          <h2 className="mb-3 text-sm font-medium text-zinc-300">
+            Credential Document
+          </h2>
+          <WalrusDocViewer blobId={attestation.walrusBlobId} />
+        </div>
+      )}
 
       {/* Decrypt section — only shown for encrypted attestations with a Walrus blob */}
       {attestation.isEncrypted && attestation.walrusBlobId && (

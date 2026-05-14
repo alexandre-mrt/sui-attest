@@ -47,3 +47,7 @@ export const MAX_DESCRIPTION_LENGTH = 1024;
 
 export const FIELD_TYPES = ['string', 'u64', 'bool', 'address', 'bytes'] as const;
 export type FieldType = (typeof FIELD_TYPES)[number];
+
+// F004: Walrus storage configuration
+export const WALRUS_EPOCHS = 53; // ~2 years on testnet/mainnet
+export const WALRUS_AGGREGATOR_URL = 'https://aggregator.walrus-testnet.walrus.space';
