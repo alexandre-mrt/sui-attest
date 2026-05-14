@@ -2,7 +2,7 @@
 
 import { useMemo } from 'react';
 import { WalrusClient } from '@mysten/walrus';
-import { SuiJsonRpcClient } from '@mysten/sui/jsonRpc';
+import { SuiGrpcClient } from '@mysten/sui/grpc';
 import { WalrusDoc } from './WalrusDoc';
 import { NETWORK, SUI_RPC_URLS } from '@/lib/constants';
 
@@ -12,14 +12,14 @@ interface WalrusDocViewerProps {
 
 /**
  * Client-side wrapper that initializes WalrusClient and renders WalrusDoc.
- * Uses a read-only SuiJsonRpcClient (no wallet required) for Walrus reads.
+ * Uses a read-only SuiGrpcClient (no wallet required) for Walrus reads.
  */
 export function WalrusDocViewer({ blobId }: WalrusDocViewerProps) {
 	const walrusClient = useMemo(() => {
 		if (NETWORK !== 'testnet' && NETWORK !== 'mainnet') return null;
-		const suiClient = new SuiJsonRpcClient({
+		const suiClient = new SuiGrpcClient({
 			network: NETWORK,
-			url: SUI_RPC_URLS[NETWORK],
+			baseUrl: SUI_RPC_URLS[NETWORK],
 		});
 		return new WalrusClient({ network: NETWORK, suiClient });
 	}, []);

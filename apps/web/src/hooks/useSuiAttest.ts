@@ -3,8 +3,9 @@
 import { useDAppKit } from '@mysten/dapp-kit-react';
 import { CurrentAccountSigner } from '@mysten/dapp-kit-core';
 import { WalrusClient, RetryableWalrusClientError, blobIdToInt } from '@mysten/walrus';
-import { SuiJsonRpcClient } from '@mysten/sui/jsonRpc';
+import { SuiGrpcClient } from '@mysten/sui/grpc';
 import { Transaction } from '@mysten/sui/transactions';
+import { bcs } from '@mysten/sui/bcs';
 import {
   PACKAGE_ID,
   SCHEMA_REGISTRY_ID,
@@ -71,7 +72,7 @@ export function useSuiAttest() {
     // Upload schema document to Walrus if provided
     let walrusBlobIdBigInt: bigint | null = null;
     if (schemaDoc != null && schemaDoc.length > 0 && (NETWORK === 'testnet' || NETWORK === 'mainnet')) {
-      const suiClient = new SuiJsonRpcClient({ network: NETWORK, url: SUI_RPC_URLS[NETWORK] });
+      const suiClient = new SuiGrpcClient({ network: NETWORK, baseUrl: SUI_RPC_URLS[NETWORK] });
       const walrusClient = new WalrusClient({ network: NETWORK, suiClient });
       const signer = new CurrentAccountSigner(dAppKit);
       walrusBlobIdBigInt = await walrusUpload(walrusClient, schemaDoc, signer);
@@ -85,9 +86,9 @@ export function useSuiAttest() {
         tx.object(SCHEMA_REGISTRY_ID),
         tx.pure.vector('u8', Array.from(encoder.encode(name))),
         tx.pure.vector('u8', Array.from(encoder.encode(description))),
-        tx.pure('vector<vector<u8>>', fieldNames),
-        tx.pure('vector<vector<u8>>', fieldTypes),
-        tx.pure('vector<bool>', fieldRequired),
+        tx.pure(bcs.vector(bcs.vector(bcs.U8)).serialize(fieldNames)),
+        tx.pure(bcs.vector(bcs.vector(bcs.U8)).serialize(fieldTypes)),
+        tx.pure(bcs.vector(bcs.Bool).serialize(fieldRequired)),
         tx.pure.option('u256', walrusBlobIdBigInt),
         tx.object(CLOCK_ID),
       ],
@@ -125,7 +126,7 @@ export function useSuiAttest() {
 
       // Upload encrypted bytes to Walrus
       if (NETWORK === 'testnet' || NETWORK === 'mainnet') {
-        const suiClient = new SuiJsonRpcClient({ network: NETWORK, url: SUI_RPC_URLS[NETWORK] });
+        const suiClient = new SuiGrpcClient({ network: NETWORK, baseUrl: SUI_RPC_URLS[NETWORK] });
         const walrusClient = new WalrusClient({ network: NETWORK, suiClient });
         const signer = new CurrentAccountSigner(dAppKit);
         walrusBlobIdBigInt = await walrusUpload(walrusClient, encryptedBytes, signer);
@@ -133,7 +134,7 @@ export function useSuiAttest() {
       isEncrypted = true;
     } else if (credentialDoc != null && credentialDoc.length > 0 && (NETWORK === 'testnet' || NETWORK === 'mainnet')) {
       // Plain credential document upload
-      const suiClient = new SuiJsonRpcClient({ network: NETWORK, url: SUI_RPC_URLS[NETWORK] });
+      const suiClient = new SuiGrpcClient({ network: NETWORK, baseUrl: SUI_RPC_URLS[NETWORK] });
       const walrusClient = new WalrusClient({ network: NETWORK, suiClient });
       const signer = new CurrentAccountSigner(dAppKit);
       walrusBlobIdBigInt = await walrusUpload(walrusClient, credentialDoc, signer);

@@ -1,17 +1,16 @@
 import { createDAppKit } from '@mysten/dapp-kit-core';
-import { SuiJsonRpcClient } from '@mysten/sui/jsonRpc';
-import { NETWORK } from './constants';
+import { SuiGrpcClient } from '@mysten/sui/grpc';
+import { NETWORK, SUI_RPC_URLS } from './constants';
 
 // createDAppKit v1.3 requires `networks` array and `createClient` factory function.
 // `networks` type must match SuiClientTypes.Network[] — use string literals.
+// SuiGrpcClient uses gRPC-Web transport (faster binary protocol, lower latency).
 export const dAppKit = createDAppKit({
   networks: ['testnet', 'mainnet'] as const,
   defaultNetwork: NETWORK,
   createClient: (network) =>
-    new SuiJsonRpcClient({
+    new SuiGrpcClient({
       network,
-      url: network === 'mainnet'
-        ? 'https://fullnode.mainnet.sui.io:443'
-        : 'https://fullnode.testnet.sui.io:443',
+      baseUrl: SUI_RPC_URLS[network as keyof typeof SUI_RPC_URLS],
     }),
 });

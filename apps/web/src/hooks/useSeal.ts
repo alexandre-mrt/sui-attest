@@ -9,12 +9,13 @@
 
 import { useRef, useCallback, useMemo } from 'react';
 import { useDAppKit, useWalletConnection } from '@mysten/dapp-kit-react';
-import { SuiJsonRpcClient } from '@mysten/sui/jsonRpc';
+import { SuiGrpcClient } from '@mysten/sui/grpc';
 import { SealClient, SessionKey, EncryptedObject } from '@mysten/seal';
 import { Transaction } from '@mysten/sui/transactions';
 import { fromHex, toHex } from '@mysten/sui/utils';
 import {
   PACKAGE_ID,
+  NETWORK,
   SEAL_KEY_SERVERS,
   SEAL_THRESHOLD,
   SESSION_KEY_TTL_MIN,
@@ -76,7 +77,7 @@ export function useSeal(): UseSealReturn {
 
   // Stable client instances (created once, not on every render)
   const suiClient = useMemo(
-    () => new SuiJsonRpcClient({ network: 'testnet', url: SUI_RPC_URLS.testnet }),
+    () => new SuiGrpcClient({ network: 'testnet', baseUrl: SUI_RPC_URLS.testnet }),
     [],
   );
 
@@ -85,7 +86,7 @@ export function useSeal(): UseSealReturn {
       new SealClient({
         suiClient,
         serverConfigs: [...SEAL_KEY_SERVERS],
-        verifyKeyServers: false,
+        verifyKeyServers: (NETWORK as string) === 'mainnet',
       }),
     [suiClient],
   );
@@ -134,17 +135,22 @@ export function useSeal(): UseSealReturn {
     // Wait a moment for indexer propagation then fetch the tx effects
     await new Promise((r) => setTimeout(r, 2000));
 
-    const txData = await suiClient.getTransactionBlock({
+    const txResult = await suiClient.getTransaction({
       digest,
-      options: { showEvents: true, showObjectChanges: true },
+      include: { effects: true },
     });
 
-    // Find the created shared object (the allowlist)
-    const created = txData.objectChanges?.find(
-      (c) => c.type === 'created' && c.owner !== null && typeof c.owner === 'object' && 'Shared' in c.owner,
+    const txInfo = txResult.$kind === 'Transaction' ? txResult.Transaction : null;
+    if (!txInfo) {
+      throw new Error('Transaction not found or failed');
+    }
+
+    // Find the created shared object (the allowlist) in effects
+    const created = txInfo.effects?.changedObjects.find(
+      (c) => c.idOperation === 'Created' && c.outputOwner?.$kind === 'Shared',
     );
 
-    if (!created || created.type !== 'created') {
+    if (!created) {
       throw new Error('Could not find created allowlist object in transaction');
     }
 

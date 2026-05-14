@@ -1,4 +1,4 @@
-import { SuiJsonRpcClient } from '@mysten/sui/jsonRpc';
+import { SuiGrpcClient } from '@mysten/sui/grpc';
 import { StatusBadge, deriveStatus } from '@/components/StatusBadge';
 import { DecryptButton } from '@/components/DecryptButton';
 import { WalrusDocViewer } from '@/components/WalrusDocViewer';
@@ -11,23 +11,24 @@ async function fetchAttestation(id: string): Promise<{
   attestation: Attestation | null;
   revoked: boolean;
 }> {
-  const client = new SuiJsonRpcClient({ network: 'testnet', url: SUI_RPC_URLS.testnet });
+  const client = new SuiGrpcClient({ network: 'testnet', baseUrl: SUI_RPC_URLS.testnet });
 
   try {
-    const obj = await client.getObject({
-      id,
-      options: { showContent: true },
+    const { object: obj } = await client.getObject({
+      objectId: id,
+      include: { json: true },
     });
 
-    if (!obj.data?.content || obj.data.content.dataType !== 'moveObject') {
+    const json = obj.json;
+    if (!json) {
       return { attestation: null, revoked: false };
     }
 
-    const fields = obj.data.content.fields as Record<string, unknown>;
+    const fields = (json.fields as Record<string, unknown>) ?? json;
 
     const attestation: Attestation = {
       id,
-      schemaId: (fields.schema_id as { id: string }).id ?? (fields.schema_id as string),
+      schemaId: (fields.schema_id as { id: string })?.id ?? (fields.schema_id as string),
       attester: fields.attester as string,
       recipient: fields.recipient as string,
       dataHash: Array.isArray(fields.data_hash)
@@ -46,11 +47,17 @@ async function fetchAttestation(id: string): Promise<{
     // Check revocation by dynamic field on RevocationRegistry
     let revoked = false;
     try {
-      const revokedField = await client.getDynamicFieldObject({
+      const idHex = id.startsWith('0x') ? id.slice(2) : id;
+      const padded = idHex.padStart(64, '0');
+      const bcsBytes = new Uint8Array(32);
+      for (let i = 0; i < 32; i++) {
+        bcsBytes[i] = parseInt(padded.slice(i * 2, i * 2 + 2), 16);
+      }
+      await client.getDynamicField({
         parentId: REVOCATION_REGISTRY_ID,
-        name: { type: '0x2::object::ID', value: id },
+        name: { type: '0x2::object::ID', bcs: bcsBytes },
       });
-      revoked = revokedField.data !== null && !revokedField.error;
+      revoked = true;
     } catch {
       revoked = false;
     }

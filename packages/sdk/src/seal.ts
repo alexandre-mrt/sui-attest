@@ -83,13 +83,14 @@ export function parseAllowlistId(sealId: string): string {
 export function createSealClient(
 	suiClient: SealCompatibleClient,
 	config?: Partial<SealConfig>,
+	network: string = "testnet",
 ): SealClient {
 	const serverConfigs = config?.serverConfigs ?? SEAL_KEY_SERVERS_TESTNET;
 
 	return new SealClient({
 		suiClient,
 		serverConfigs,
-		verifyKeyServers: false,
+		verifyKeyServers: network === "mainnet",
 	});
 }
 

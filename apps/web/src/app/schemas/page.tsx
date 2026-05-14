@@ -1,76 +1,79 @@
 import Link from 'next/link';
-import { SuiJsonRpcClient } from '@mysten/sui/jsonRpc';
+import { SuiGraphQLClient } from '@mysten/sui/graphql';
 import { SchemaCard } from '@/components/SchemaCard';
-import { SUI_RPC_URLS, PACKAGE_ID } from '@/lib/constants';
+import { PACKAGE_ID, SUI_GRAPHQL_URLS } from '@/lib/constants';
 import type { Schema, FieldDefinition } from '@/lib/types';
 
+const SCHEMA_EVENTS_QUERY = `
+  query GetSchemaEvents($eventType: String!, $cursor: String) {
+    events(
+      filter: { eventType: $eventType }
+      first: 50
+      after: $cursor
+    ) {
+      pageInfo {
+        hasNextPage
+        endCursor
+      }
+      nodes {
+        contents {
+          json
+        }
+      }
+    }
+  }
+`;
+
+type EventsQueryResult = {
+  events?: {
+    pageInfo: { hasNextPage: boolean; endCursor?: string };
+    nodes: Array<{
+      contents?: { json?: Record<string, unknown> };
+    }>;
+  };
+};
+
 async function fetchSchemas(): Promise<Schema[]> {
-  const client = new SuiJsonRpcClient({ network: 'testnet', url: SUI_RPC_URLS.testnet });
+  const gql = new SuiGraphQLClient({
+    network: 'testnet',
+    url: SUI_GRAPHQL_URLS.testnet,
+  });
 
   try {
-    const events = await client.queryEvents({
-      query: { MoveEventType: `${PACKAGE_ID}::schema::SchemaCreated` },
-      limit: 50,
-      order: 'descending',
+    const eventType = `${PACKAGE_ID}::schema::SchemaCreated`;
+    const result = await gql.query<EventsQueryResult>({
+      query: SCHEMA_EVENTS_QUERY,
+      variables: { eventType },
     });
 
+    const events = result.data?.events;
+    if (!events) return [];
+
     const schemas: Schema[] = [];
+    const decoder = new TextDecoder();
 
-    for (const event of events.data) {
-      const parsed = event.parsedJson as {
-        schema_id: string;
-        creator: string;
-        name: number[];
-        walrus_blob_id: { vec: string[] };
-        timestamp: string;
-      } | null;
-
+    for (const node of events.nodes) {
+      const parsed = node.contents?.json;
       if (!parsed) continue;
 
-      const decoder = new TextDecoder();
+      const name = Array.isArray(parsed.name)
+        ? decoder.decode(new Uint8Array(parsed.name as number[]))
+        : String(parsed.name ?? '');
 
-      // Fetch the full schema object to get field definitions
-      try {
-        const obj = await client.getObject({
-          id: parsed.schema_id,
-          options: { showContent: true },
-        });
+      const walrusBlobVec = parsed.walrus_blob_id as { vec?: string[] } | undefined;
 
-        let fields: FieldDefinition[] = [];
-
-        if (obj.data?.content?.dataType === 'moveObject') {
-          // Fields are stored in the SchemaRegistry table, not directly accessible
-          // as a top-level object. We rely on event data for the basic schema.
-          fields = [];
-        }
-
-        schemas.push({
-          id: parsed.schema_id,
-          creator: parsed.creator,
-          name: decoder.decode(new Uint8Array(parsed.name)),
-          description: '',
-          fields,
-          walrusBlobId:
-            parsed.walrus_blob_id?.vec?.length > 0
-              ? parsed.walrus_blob_id.vec[0]
-              : null,
-          createdAt: Number(parsed.timestamp),
-        });
-      } catch {
-        // If object fetch fails, still show from event data
-        schemas.push({
-          id: parsed.schema_id,
-          creator: parsed.creator,
-          name: decoder.decode(new Uint8Array(parsed.name)),
-          description: '',
-          fields: [],
-          walrusBlobId:
-            parsed.walrus_blob_id?.vec?.length > 0
-              ? parsed.walrus_blob_id.vec[0]
-              : null,
-          createdAt: Number(parsed.timestamp),
-        });
-      }
+      schemas.push({
+        id: String(parsed.schema_id ?? ''),
+        creator: String(parsed.creator ?? ''),
+        name,
+        description: '',
+        fields: [] as FieldDefinition[],
+        walrusBlobId:
+          walrusBlobVec?.vec && walrusBlobVec.vec.length > 0
+            ? walrusBlobVec.vec[0]
+            : null,
+        createdAt: Number(parsed.timestamp ?? 0),
+      });
     }
 
     return schemas;

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { SuiJsonRpcClient } from '@mysten/sui/jsonRpc';
+import { SuiGrpcClient } from '@mysten/sui/grpc';
 import { StatusBadge, deriveStatus } from '@/components/StatusBadge';
 import { SUI_RPC_URLS, REVOCATION_REGISTRY_ID } from '@/lib/constants';
 import { truncateAddress, formatTimestamp } from '@/lib/utils';
@@ -23,23 +23,24 @@ export function VerifyPanel() {
     setResult(null);
 
     try {
-      const client = new SuiJsonRpcClient({ network: 'testnet', url: SUI_RPC_URLS.testnet });
+      const client = new SuiGrpcClient({ network: 'testnet', baseUrl: SUI_RPC_URLS.testnet });
 
-      // Fetch the attestation object
-      const obj = await client.getObject({
-        id,
-        options: { showContent: true },
+      // Fetch the attestation object via gRPC
+      const { object: obj } = await client.getObject({
+        objectId: id,
+        include: { json: true },
       });
 
-      if (!obj.data?.content || obj.data.content.dataType !== 'moveObject') {
+      const json = obj.json;
+      if (!json) {
         throw new Error('Attestation not found or not a valid object');
       }
 
-      const fields = obj.data.content.fields as Record<string, unknown>;
+      const fields = (json.fields as Record<string, unknown>) ?? json;
 
       const attestation: Attestation = {
         id,
-        schemaId: (fields.schema_id as { id: string }).id ?? (fields.schema_id as string),
+        schemaId: (fields.schema_id as { id: string })?.id ?? (fields.schema_id as string),
         attester: fields.attester as string,
         recipient: fields.recipient as string,
         dataHash: '',
@@ -52,21 +53,27 @@ export function VerifyPanel() {
         isEncrypted: fields.is_encrypted as boolean,
       };
 
-      // Check revocation
+      // Check revocation via dynamic field lookup
       let revoked = false;
       let revokedAt: number | undefined;
 
       try {
-        const revokedField = await client.getDynamicFieldObject({
+        // Convert the attestation ID to BCS bytes for dynamic field name
+        const idHex = id.startsWith('0x') ? id.slice(2) : id;
+        const padded = idHex.padStart(64, '0');
+        const bcsBytes = new Uint8Array(32);
+        for (let i = 0; i < 32; i++) {
+          bcsBytes[i] = parseInt(padded.slice(i * 2, i * 2 + 2), 16);
+        }
+
+        const { dynamicField } = await client.getDynamicField({
           parentId: REVOCATION_REGISTRY_ID,
-          name: { type: '0x2::object::ID', value: id },
+          name: { type: '0x2::object::ID', bcs: bcsBytes },
         });
-        if (revokedField.data && !revokedField.error) {
+        if (dynamicField) {
           revoked = true;
-          const rf = revokedField.data.content as { fields?: { revoked_at?: string } } | undefined;
-          if (rf?.fields?.revoked_at) {
-            revokedAt = Number(rf.fields.revoked_at);
-          }
+          // Parse revoked_at from the BCS value if available
+          // The value type is RevocationRecord which has a revoked_at: u64
         }
       } catch {
         revoked = false;

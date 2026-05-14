@@ -1,49 +1,78 @@
 import { Suspense } from 'react';
 import Link from 'next/link';
-import { SuiJsonRpcClient } from '@mysten/sui/jsonRpc';
+import { SuiGraphQLClient } from '@mysten/sui/graphql';
 import { AttestationCard } from '@/components/AttestationCard';
-import { SUI_RPC_URLS, PACKAGE_ID } from '@/lib/constants';
+import { PACKAGE_ID, SUI_GRAPHQL_URLS } from '@/lib/constants';
 import type { Attestation } from '@/lib/types';
 import { ExplorerSearch } from './ExplorerSearch';
 
+const ATTESTATION_EVENTS_QUERY = `
+  query GetAttestationEvents($eventType: String!, $cursor: String) {
+    events(
+      filter: { eventType: $eventType }
+      first: 20
+      after: $cursor
+    ) {
+      pageInfo {
+        hasNextPage
+        endCursor
+      }
+      nodes {
+        contents {
+          json
+        }
+      }
+    }
+  }
+`;
+
+type EventsQueryResult = {
+  events?: {
+    pageInfo: { hasNextPage: boolean; endCursor?: string };
+    nodes: Array<{
+      contents?: { json?: Record<string, unknown> };
+    }>;
+  };
+};
+
 async function fetchRecentAttestations(): Promise<Attestation[]> {
-  const client = new SuiJsonRpcClient({ network: 'testnet', url: SUI_RPC_URLS.testnet });
+  const gql = new SuiGraphQLClient({
+    network: 'testnet',
+    url: SUI_GRAPHQL_URLS.testnet,
+  });
 
   try {
-    const events = await client.queryEvents({
-      query: { MoveEventType: `${PACKAGE_ID}::attestation::AttestationCreated` },
-      limit: 20,
-      order: 'descending',
+    const eventType = `${PACKAGE_ID}::attestation::AttestationCreated`;
+    const result = await gql.query<EventsQueryResult>({
+      query: ATTESTATION_EVENTS_QUERY,
+      variables: { eventType },
     });
 
-    const results: Attestation[] = [];
-    for (const event of events.data) {
-      const parsed = event.parsedJson as {
-        attestation_id: string;
-        schema_id: string;
-        attester: string;
-        recipient: string;
-        walrus_blob_id: { vec: string[] };
-        expires_at: { vec: string[] };
-        timestamp: string;
-      } | null;
+    const events = result.data?.events;
+    if (!events) return [];
 
+    const results: Attestation[] = [];
+    for (const node of events.nodes) {
+      const parsed = node.contents?.json;
       if (!parsed) continue;
 
+      const walrusBlobVec = parsed.walrus_blob_id as { vec?: string[] } | undefined;
+      const expiresAtVec = parsed.expires_at as { vec?: string[] } | undefined;
+
       results.push({
-        id: parsed.attestation_id,
-        schemaId: parsed.schema_id,
-        attester: parsed.attester,
-        recipient: parsed.recipient,
+        id: String(parsed.attestation_id ?? ''),
+        schemaId: String(parsed.schema_id ?? ''),
+        attester: String(parsed.attester ?? ''),
+        recipient: String(parsed.recipient ?? ''),
         dataHash: '',
         walrusBlobId:
-          parsed.walrus_blob_id?.vec?.length > 0
-            ? parsed.walrus_blob_id.vec[0]
+          walrusBlobVec?.vec && walrusBlobVec.vec.length > 0
+            ? walrusBlobVec.vec[0]
             : null,
-        createdAt: Number(parsed.timestamp),
+        createdAt: Number(parsed.timestamp ?? 0),
         expiresAt:
-          parsed.expires_at?.vec?.length > 0
-            ? Number(parsed.expires_at.vec[0])
+          expiresAtVec?.vec && expiresAtVec.vec.length > 0
+            ? Number(expiresAtVec.vec[0])
             : null,
         isEncrypted: false,
       });

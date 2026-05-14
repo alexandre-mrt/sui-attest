@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { Geist, Geist_Mono } from 'next/font/google';
 import './globals.css';
-import { Providers } from './providers';
+import { ClientProviders } from './ClientProviders';
 import { NavBar } from '@/components/NavBar';
 
 const geistSans = Geist({
@@ -31,7 +31,7 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-[#0a0a0a] text-zinc-100">
-        <Providers>
+        <ClientProviders>
           <NavBar />
           <main className="flex-1">{children}</main>
           <footer className="border-t border-zinc-800 py-6 text-center text-sm text-zinc-500">
@@ -45,7 +45,7 @@ export default function RootLayout({
               Sui
             </a>
           </footer>
-        </Providers>
+        </ClientProviders>
       </body>
     </html>
   );

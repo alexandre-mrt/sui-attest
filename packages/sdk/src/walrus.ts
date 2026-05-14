@@ -21,6 +21,12 @@ export function createWalrusClient(
  * Upload a raw byte payload to Walrus and return the blob ID.
  * Automatically retries on RetryableWalrusClientError (up to MAX_RETRIES).
  * Credentials are stored as non-deletable blobs for permanence.
+ *
+ * Note: writeBlob returns after upload but before on-chain certification.
+ * The blob is available for reads immediately, but `certified_epoch` may
+ * not be set yet. For server-side usage where certification proof is needed,
+ * poll getObject(blobObjectId) until certified_epoch is set.
+ * For browser flows, the writeFilesFlow API handles certification internally.
  */
 export async function uploadToWalrus(
 	walrusClient: WalrusClient,

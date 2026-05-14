@@ -1,6 +1,7 @@
 import { SuiGrpcClient } from "@mysten/sui/grpc";
 import { SuiGraphQLClient } from "@mysten/sui/graphql";
 import { Transaction } from "@mysten/sui/transactions";
+import { bcs } from "@mysten/sui/bcs";
 import type { Signer } from "@mysten/sui/cryptography";
 import { WalrusClient } from "@mysten/walrus";
 
@@ -177,9 +178,9 @@ export class SuiAttestClient {
 				tx.object(this.config.schemaRegistryId),
 				tx.pure.vector("u8", nameBytes),
 				tx.pure.vector("u8", descBytes),
-				tx.pure("vector<vector<u8>>", fieldNames),
-				tx.pure("vector<vector<u8>>", fieldTypes),
-				tx.pure.vector("bool", fieldRequired),
+				tx.pure(bcs.vector(bcs.vector(bcs.U8)).serialize(fieldNames)),
+				tx.pure(bcs.vector(bcs.vector(bcs.U8)).serialize(fieldTypes)),
+				tx.pure(bcs.vector(bcs.Bool).serialize(fieldRequired)),
 				tx.pure.option("u256", walrusBlobId),
 				tx.object(CLOCK_OBJECT_ID),
 			],
@@ -418,6 +419,31 @@ export class SuiAttestClient {
 		});
 
 		return tx;
+	}
+
+	/**
+	 * Build a Transaction to revoke an attestation by its ID (without owning the object).
+	 * Uses attestation::revoke_by_id which looks up the attestation in the registry.
+	 * Returns the transaction for the caller to sign and execute.
+	 */
+	revokeById(params: {
+		attestationId: string;
+		reason?: string;
+	}): { transaction: Transaction } {
+		const tx = new Transaction();
+		const reasonBytes = encodeString(params.reason ?? "");
+
+		tx.moveCall({
+			target: `${this.config.packageId}::${MODULE_ATTESTATION}::revoke_by_id`,
+			arguments: [
+				tx.object(this.config.revocationRegistryId),
+				tx.pure.address(params.attestationId),
+				tx.pure.vector("u8", reasonBytes),
+				tx.object(CLOCK_OBJECT_ID),
+			],
+		});
+
+		return { transaction: tx };
 	}
 
 	/**
