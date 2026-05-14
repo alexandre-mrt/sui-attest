@@ -1,0 +1,23 @@
+{
+  "name": "@sui-attest/sdk",
+  "version": "0.1.0",
+  "type": "module",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "scripts": {
+    "build": "bun build src/index.ts --outdir dist --target browser",
+    "test": "bun test",
+    "lint": "bunx biome check --write ."
+  },
+  "dependencies": {
+    "@mysten/sui": "^2.16.0"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "typescript": "^5.5.0"
+  },
+  "peerDependencies": {
+    "@mysten/walrus": "^1.1.0",
+    "@mysten/seal": "^1.1.0"
+  }
+}
