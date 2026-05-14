@@ -8,6 +8,7 @@ import { Transaction } from '@mysten/sui/transactions';
 import {
   PACKAGE_ID,
   SCHEMA_REGISTRY_ID,
+  REVOCATION_REGISTRY_ID,
   CLOCK_ID,
   NETWORK,
   SUI_RPC_URLS,
@@ -150,6 +151,7 @@ export function useSuiAttest() {
       target: `${PACKAGE_ID}::attestation::attest`,
       arguments: [
         tx.object(SCHEMA_REGISTRY_ID),
+        tx.object(REVOCATION_REGISTRY_ID),
         tx.pure.id(schemaId),
         tx.pure.address(recipient),
         tx.pure.vector('u8', dataHashArray),

@@ -327,7 +327,7 @@ export class SuiAttestClient {
 			target: `${this.config.packageId}::${MODULE_ATTESTATION}::attest`,
 			arguments: [
 				tx.object(this.config.schemaRegistryId),
-				// schema_id: ID — pass as address (both are 32-byte objects)
+				tx.object(this.config.revocationRegistryId),
 				tx.pure.address(params.schemaId),
 				tx.pure.address(params.recipient),
 				tx.pure.vector("u8", Array.from(dataHashBytes)),

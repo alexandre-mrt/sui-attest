@@ -19,6 +19,7 @@ const ESelfAttestation: u64 = 5;
 const EInvalidExpiry: u64 = 6;
 const EInvalidDataHash: u64 = 7;
 const EReasonTooLong: u64 = 8;
+const EAttestationNotRegistered: u64 = 9;
 
 // ── Types ─────────────────────────────────────────────────
 
@@ -184,7 +185,7 @@ public entry fun revoke_by_id(
     clock: &Clock,
     ctx: &mut TxContext,
 ) {
-    assert!(revocation_registry.attester_registry.contains(attestation_id), ESchemaNotFound);
+    assert!(revocation_registry.attester_registry.contains(attestation_id), EAttestationNotRegistered);
     let attester = *revocation_registry.attester_registry.borrow(attestation_id);
     assert!(ctx.sender() == attester, ENotAttester);
     assert!(reason.length() <= MAX_REASON_LENGTH, EReasonTooLong);
