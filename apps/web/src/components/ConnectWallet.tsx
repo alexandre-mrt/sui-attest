@@ -8,7 +8,7 @@ const ConnectButtonInner = dynamic(
     import('@mysten/dapp-kit-react/ui').then((mod) => ({
       default: mod.ConnectButton,
     })),
-  { ssr: false, loading: () => <button className="h-9 w-32 rounded-lg bg-zinc-800 animate-pulse" /> },
+  { ssr: false, loading: () => <button className="h-10 w-32 animate-pulse rounded-lg bg-bg-hover" /> },
 );
 
 export function ConnectWallet() {

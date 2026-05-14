@@ -7,19 +7,19 @@ interface StatusBadgeProps {
 const STATUS_CONFIG: Record<Status, { label: string; className: string }> = {
   valid: {
     label: 'Valid',
-    className: 'bg-emerald-500/10 text-emerald-400 ring-1 ring-emerald-500/30',
+    className: 'text-valid bg-valid/10 border border-valid/20',
   },
   revoked: {
     label: 'Revoked',
-    className: 'bg-red-500/10 text-red-400 ring-1 ring-red-500/30',
+    className: 'text-revoked bg-revoked/10 border border-revoked/20',
   },
   expired: {
     label: 'Expired',
-    className: 'bg-amber-500/10 text-amber-400 ring-1 ring-amber-500/30',
+    className: 'text-expired bg-expired/10 border border-expired/20',
   },
   unknown: {
     label: 'Unknown',
-    className: 'bg-zinc-500/10 text-zinc-400 ring-1 ring-zinc-500/30',
+    className: 'text-text-tertiary bg-bg-hover border border-border',
   },
 };
 
@@ -27,7 +27,7 @@ export function StatusBadge({ status }: StatusBadgeProps) {
   const config = STATUS_CONFIG[status];
   return (
     <span
-      className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${config.className}`}
+      className={`inline-flex items-center rounded-md px-2 py-0.5 text-[11px] font-medium uppercase tracking-wider ${config.className}`}
     >
       {config.label}
     </span>

@@ -57,30 +57,30 @@ export function WalrusUpload({
 
 	return (
 		<div className={`flex flex-col gap-1 ${className}`}>
-			<span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+			<span className="text-[13px] font-medium uppercase tracking-wider text-text-secondary">
 				{label}
-				<span className="ml-1 text-xs text-zinc-400">(optional)</span>
+				<span className="ml-1 normal-case tracking-normal text-text-tertiary">(optional)</span>
 			</span>
 
 			{fileName ? (
-				<div className="flex items-center gap-2 rounded-md border border-zinc-200 bg-zinc-50 px-3 py-2 dark:border-zinc-700 dark:bg-zinc-900">
-					<span className="flex-1 truncate text-sm text-zinc-700 dark:text-zinc-300">
+				<div className="flex items-center gap-2 rounded-lg border border-border bg-bg-surface px-3 py-2">
+					<span className="flex-1 truncate text-sm text-text-primary">
 						{fileName}
 					</span>
 					<button
 						type="button"
 						onClick={handleClear}
 						disabled={disabled}
-						className="text-xs text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 disabled:opacity-50"
+						className="text-[13px] text-text-secondary transition-colors hover:text-text-primary disabled:opacity-40 disabled:cursor-not-allowed"
 					>
 						Remove
 					</button>
 				</div>
 			) : (
 				<label
-					className={`flex cursor-pointer items-center justify-center rounded-md border border-dashed border-zinc-300 bg-zinc-50 px-4 py-3 transition-colors hover:bg-zinc-100 dark:border-zinc-600 dark:bg-zinc-900 dark:hover:bg-zinc-800 ${disabled ? "cursor-not-allowed opacity-50" : ""}`}
+					className={`flex cursor-pointer items-center justify-center rounded-xl border border-dashed border-border p-6 transition-[border-color] duration-200 hover:border-border-hover ${disabled ? "cursor-not-allowed opacity-40" : ""}`}
 				>
-					<span className="text-sm text-zinc-500 dark:text-zinc-400">
+					<span className="text-sm text-text-secondary">
 						Click to select file
 					</span>
 					<input
@@ -95,10 +95,10 @@ export function WalrusUpload({
 			)}
 
 			{error && (
-				<p className="text-xs text-red-500">{error}</p>
+				<p className="text-[13px] text-revoked">{error}</p>
 			)}
 
-			<p className="text-xs text-zinc-400">
+			<p className="text-[13px] text-text-tertiary">
 				Accepted: {accept}. Will be stored on Walrus decentralized storage.
 			</p>
 		</div>

@@ -26,7 +26,7 @@ export function WalrusDocViewer({ blobId }: WalrusDocViewerProps) {
 
 	if (!walrusClient) {
 		return (
-			<p className="text-sm text-zinc-500">
+			<p className="text-sm text-text-secondary">
 				Walrus is only available on mainnet and testnet.
 			</p>
 		);

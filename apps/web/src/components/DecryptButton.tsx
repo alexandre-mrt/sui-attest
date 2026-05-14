@@ -63,9 +63,9 @@ export function DecryptButton({ walrusBlobId }: DecryptButtonProps) {
     }
 
     return (
-      <div className="rounded-lg border border-green-500/30 bg-green-500/10 p-4">
-        <p className="text-xs font-medium text-green-400 mb-2">Decrypted data</p>
-        <pre className="text-xs text-zinc-200 whitespace-pre-wrap break-all font-mono">
+      <div className="rounded-xl border border-valid/20 bg-valid/10 p-5">
+        <p className="mb-2 text-[13px] font-medium uppercase tracking-wider text-valid">Decrypted data</p>
+        <pre className="whitespace-pre-wrap break-all font-mono text-sm text-text-primary">
           {formatted}
         </pre>
       </div>
@@ -78,13 +78,13 @@ export function DecryptButton({ walrusBlobId }: DecryptButtonProps) {
         type="button"
         onClick={handleDecrypt}
         disabled={status === 'decrypting' || !isConnected}
-        className="inline-flex items-center gap-2 rounded-lg border border-yellow-500/30 bg-yellow-500/10 px-4 py-2.5 text-sm font-medium text-yellow-300 hover:bg-yellow-500/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        className="inline-flex h-10 items-center gap-2 rounded-lg border border-border bg-transparent px-4 text-sm font-medium text-text-primary transition-colors hover:bg-bg-hover disabled:cursor-not-allowed disabled:opacity-40"
       >
         <svg
           xmlns="http://www.w3.org/2000/svg"
           viewBox="0 0 16 16"
           fill="currentColor"
-          className="w-4 h-4"
+          className="h-4 w-4"
           aria-hidden="true"
         >
           <path
@@ -97,16 +97,16 @@ export function DecryptButton({ walrusBlobId }: DecryptButtonProps) {
       </button>
 
       {!isConnected && (
-        <p className="text-xs text-zinc-500">Connect your wallet to decrypt.</p>
+        <p className="text-[13px] text-text-secondary">Connect your wallet to decrypt.</p>
       )}
 
       {status === 'error' && errorMsg && (
-        <p className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs text-red-400">
+        <p className="rounded-lg border border-revoked/20 bg-revoked/10 px-3 py-2 text-[13px] text-revoked">
           {errorMsg}
         </p>
       )}
 
-      <p className="text-xs text-zinc-500">
+      <p className="text-[13px] text-text-secondary">
         You must be listed as a verifier in the attestation allowlist.
         Signing a personal message creates a temporary session key.
       </p>

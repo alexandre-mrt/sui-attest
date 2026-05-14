@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { ConnectWallet } from './ConnectWallet';
 
 const NAV_LINKS = [
@@ -12,23 +13,35 @@ const NAV_LINKS = [
 ] as const;
 
 export function NavBar() {
+  const pathname = usePathname();
+
   return (
-    <nav className="border-b border-zinc-800 bg-[#0a0a0a]/95 backdrop-blur sticky top-0 z-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between h-14">
-        <Link href="/" className="text-lg font-semibold tracking-tight text-white hover:text-blue-400 transition-colors">
+    <nav className="sticky top-0 z-50 h-14 border-b border-border bg-bg-root/80 backdrop-blur-md">
+      <div className="mx-auto flex h-full max-w-[1120px] items-center justify-between px-6 lg:px-8">
+        <Link
+          href="/"
+          className="font-sans text-base font-medium text-text-primary transition-colors hover:text-accent"
+        >
           SuiAttest
         </Link>
 
-        <div className="hidden md:flex items-center gap-6">
-          {NAV_LINKS.map(({ href, label }) => (
-            <Link
-              key={href}
-              href={href}
-              className="text-sm text-zinc-400 hover:text-zinc-100 transition-colors"
-            >
-              {label}
-            </Link>
-          ))}
+        <div className="hidden items-center gap-6 md:flex">
+          {NAV_LINKS.map(({ href, label }) => {
+            const isActive = pathname === href || pathname.startsWith(`${href}/`);
+            return (
+              <Link
+                key={href}
+                href={href}
+                className={`text-sm transition-colors ${
+                  isActive
+                    ? 'border-b-2 border-accent pb-0.5 text-text-primary'
+                    : 'text-text-secondary hover:text-text-primary'
+                }`}
+              >
+                {label}
+              </Link>
+            );
+          })}
         </div>
 
         <ConnectWallet />
