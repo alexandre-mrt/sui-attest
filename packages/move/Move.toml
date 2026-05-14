@@ -1,0 +1,6 @@
+[package]
+name = "SuiAttest"
+edition = "2024"
+
+[addresses]
+sui_attest = "0x0"
