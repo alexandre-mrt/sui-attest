@@ -30,17 +30,17 @@ export default function RootLayout({
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col bg-[#0a0a0a] text-zinc-100">
+      <body className="min-h-full flex flex-col bg-bg-root text-text-primary">
         <ClientProviders>
           <NavBar />
           <main className="flex-1">{children}</main>
-          <footer className="border-t border-zinc-800 py-6 text-center text-sm text-zinc-500">
+          <footer className="border-t border-border py-8 text-center text-[13px] text-text-tertiary">
             SuiAttest &mdash; Testnet &bull; Built on{' '}
             <a
               href="https://sui.io"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-blue-400 hover:text-blue-300"
+              className="text-text-secondary hover:text-accent transition-colors duration-150"
             >
               Sui
             </a>

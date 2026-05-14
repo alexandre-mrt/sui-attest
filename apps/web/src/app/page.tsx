@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { AsciiHero } from '@/components/AsciiHero';
 
 const STATS = [
   { value: '6', label: 'Schema types' },
@@ -78,18 +79,15 @@ const FEATURES = [
 export default function HomePage() {
   return (
     <div className="max-w-[1120px] mx-auto px-6">
-      {/* Hero */}
-      <section className="stagger pt-24 pb-16 text-center">
-        <h1 className="font-display italic text-[3.5rem] leading-tight text-text-primary">
-          Verifiable credentials, on-chain.
-        </h1>
-        <p className="text-base text-text-secondary max-w-md mx-auto mt-4 leading-relaxed">
-          Infrastructure for issuing, verifying, and revoking attestations on
-          Sui. Structured trust, cryptographically proven.
-        </p>
+      {/* Hero — ASCII particle art + CTA */}
+      <section className="stagger pt-16 pb-16 text-center">
+        <AsciiHero
+          text="SUIATTEST"
+          subtitle="Infrastructure for issuing, verifying, and revoking attestations on Sui."
+        />
         <Link
           href="/attest"
-          className="inline-flex items-center justify-center bg-accent text-text-inverse h-10 px-6 rounded-lg text-sm font-medium mt-8 hover:bg-accent-hover transition-colors duration-150"
+          className="inline-flex items-center justify-center bg-accent text-text-inverse h-10 px-6 rounded-lg text-sm font-medium mt-6 hover:bg-accent-hover transition-colors duration-150"
         >
           Issue an attestation
         </Link>
