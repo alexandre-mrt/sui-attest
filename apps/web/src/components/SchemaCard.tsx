@@ -8,21 +8,21 @@ interface SchemaCardProps {
 
 export function SchemaCard({ schema }: SchemaCardProps) {
   return (
-    <div className="rounded-xl border border-border bg-bg-surface p-5 transition-[border-color] duration-200 hover:border-border-hover">
-      <div className="mb-3 flex items-start justify-between gap-4">
-        <div className="min-w-0 flex-1">
-          <h3 className="truncate text-base font-medium text-text-primary">{schema.name}</h3>
-          <p className="mt-0.5 line-clamp-2 text-[13px] text-text-secondary">{schema.description}</p>
+    <div className="rounded-xl border border-border bg-bg-surface p-5 hover:border-border-hover hover:bg-bg-hover transition-all duration-200">
+      <div className="flex items-start justify-between gap-4 mb-3">
+        <div className="flex-1 min-w-0">
+          <h3 className="text-base font-medium text-text-primary truncate">{schema.name}</h3>
+          <p className="text-[13px] text-text-secondary mt-0.5 line-clamp-2">{schema.description}</p>
         </div>
-        <span className="shrink-0 rounded-md border border-info/20 bg-info/10 px-2 py-0.5 text-[11px] font-medium uppercase tracking-wider text-info">
+        <span className="shrink-0 rounded-md bg-accent-muted px-2 py-0.5 text-[11px] font-medium text-accent border border-accent-border uppercase tracking-wide">
           {schema.fields.length} field{schema.fields.length !== 1 ? 's' : ''}
         </span>
       </div>
 
-      <dl className="mb-3 grid grid-cols-2 gap-x-4 gap-y-1.5 text-[13px]">
+      <dl className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-[13px] mb-3">
         <div>
           <dt className="text-text-secondary">Creator</dt>
-          <dd className="font-mono text-text-primary">{truncateAddress(schema.creator)}</dd>
+          <dd className="font-mono text-text-primary tracking-[-0.02em]">{truncateAddress(schema.creator)}</dd>
         </div>
         <div>
           <dt className="text-text-secondary">Created</dt>
@@ -46,7 +46,7 @@ export function SchemaCard({ schema }: SchemaCardProps) {
       <div className="mt-3 flex gap-2">
         <Link
           href={`/attest?schemaId=${schema.id}`}
-          className="text-[13px] text-accent transition-colors hover:text-accent-hover"
+          className="text-[13px] text-text-secondary hover:text-text-primary transition-colors duration-150"
         >
           Issue attestation
         </Link>

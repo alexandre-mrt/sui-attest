@@ -49,13 +49,14 @@ export function CreateSchemaForm() {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      <div>
+    <form onSubmit={handleSubmit}>
+      {/* Identity section */}
+      <section>
         <label
           htmlFor="schema-name"
-          className="block text-sm font-medium text-zinc-300 mb-1.5"
+          className="block text-[13px] font-medium text-text-secondary uppercase tracking-wider mb-1"
         >
-          Name <span className="text-red-400">*</span>
+          Name <span className="text-revoked">*</span>
         </label>
         <input
           id="schema-name"
@@ -65,14 +66,16 @@ export function CreateSchemaForm() {
           placeholder="e.g. KYC Verified"
           value={name}
           onChange={(e) => setName(e.target.value)}
-          className="w-full rounded-lg border border-zinc-700 bg-zinc-900 px-4 py-2.5 text-sm text-zinc-100 placeholder:text-zinc-500 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500/50"
+          className="w-full bg-bg-input border border-border rounded-lg h-10 px-3 text-sm text-text-primary placeholder:text-text-tertiary focus:border-accent focus:outline-none focus:ring-[2px] focus:ring-accent-muted transition-[border-color] duration-150"
         />
-      </div>
+      </section>
 
-      <div>
+      <div className="border-t border-border my-8" />
+
+      <section>
         <label
           htmlFor="schema-description"
-          className="block text-sm font-medium text-zinc-300 mb-1.5"
+          className="block text-[13px] font-medium text-text-secondary uppercase tracking-wider mb-1"
         >
           Description
         </label>
@@ -83,33 +86,41 @@ export function CreateSchemaForm() {
           placeholder="Describe the purpose of this attestation schema"
           value={description}
           onChange={(e) => setDescription(e.target.value)}
-          className="w-full rounded-lg border border-zinc-700 bg-zinc-900 px-4 py-2.5 text-sm text-zinc-100 placeholder:text-zinc-500 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500/50 resize-none"
+          className="w-full bg-bg-input border border-border rounded-lg px-3 py-3 text-sm text-text-primary placeholder:text-text-tertiary focus:border-accent focus:outline-none focus:ring-[2px] focus:ring-accent-muted transition-[border-color] duration-150 resize-none"
         />
-      </div>
+      </section>
 
-      <div>
-        <label className="block text-sm font-medium text-zinc-300 mb-1.5">
-          Fields <span className="text-red-400">*</span>
+      <div className="border-t border-border my-8" />
+
+      <section>
+        <label className="block text-[13px] font-medium text-text-secondary uppercase tracking-wider mb-1">
+          Fields <span className="text-revoked">*</span>
         </label>
         <FieldBuilder fields={fields} onChange={setFields} />
-      </div>
+      </section>
 
-      <WalrusUpload
-        label="Schema document"
-        accept=".json,.txt,.md,.pdf"
-        onFile={handleDocFile}
-        onClear={handleDocClear}
-        disabled={isSubmitting}
-      />
+      <div className="border-t border-border my-8" />
+
+      <section>
+        <WalrusUpload
+          label="Schema document"
+          accept=".json,.txt,.md,.pdf"
+          onFile={handleDocFile}
+          onClear={handleDocClear}
+          disabled={isSubmitting}
+        />
+      </section>
+
+      <div className="border-t border-border my-8" />
 
       {error && (
-        <p className="rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-400">
+        <p className="rounded-lg border border-revoked/30 bg-revoked/10 px-4 py-3 text-sm text-revoked mb-6">
           {error}
         </p>
       )}
 
       {!isConnected && (
-        <p className="text-sm text-zinc-500">
+        <p className="text-sm text-text-secondary mb-6">
           Connect your wallet using the button in the navigation bar to submit.
         </p>
       )}
@@ -117,7 +128,7 @@ export function CreateSchemaForm() {
       <button
         type="submit"
         disabled={isSubmitting || !isConnected}
-        className="w-full rounded-lg bg-blue-600 px-4 py-3 text-sm font-semibold text-white hover:bg-blue-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        className="bg-accent text-text-inverse h-10 rounded-lg w-full text-sm font-medium hover:bg-accent-hover transition-colors duration-150 disabled:opacity-40 disabled:cursor-not-allowed"
       >
         {isSubmitting ? 'Submitting...' : 'Create schema'}
       </button>
