@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useWalletConnection } from '@mysten/dapp-kit-react';
 import { WalrusUpload } from '@/components/WalrusUpload';
@@ -20,11 +20,6 @@ export function AttestForm() {
   const [credentialDoc, setCredentialDoc] = useState<Uint8Array | undefined>(undefined);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    const sid = searchParams.get('schemaId');
-    if (sid) setSchemaId(sid);
-  }, [searchParams]);
 
   const handleCredentialFile = useCallback((bytes: Uint8Array) => {
     setCredentialDoc(bytes);

@@ -142,7 +142,7 @@ export function useSuiAttest() {
       walrusBlobIdBigInt = await walrusUpload(walrusClient, credentialDoc, signer);
     }
 
-    const { hex: dataHashHex, bytes: dataHashBytes } = await hashAttestData(attestData);
+    const { bytes: dataHashBytes } = await hashAttestData(attestData);
     const dataHashArray = Array.from(dataHashBytes);
 
     const expiresAtMs: bigint | null =

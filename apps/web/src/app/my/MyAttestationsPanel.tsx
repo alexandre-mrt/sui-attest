@@ -131,7 +131,7 @@ async function fetchIssuedAttestations(address: string): Promise<Attestation[]> 
 
 export function MyAttestationsPanel() {
   const searchParams = useSearchParams();
-  const { account, isConnected } = useWalletConnection();
+  const { account } = useWalletConnection();
   const [tab, setTab] = useState<Tab>('received');
   const [received, setReceived] = useState<Attestation[]>([]);
   const [issued, setIssued] = useState<Attestation[]>([]);
@@ -143,17 +143,28 @@ export function MyAttestationsPanel() {
 
   useEffect(() => {
     if (!activeAddress) return;
-    setIsLoading(true);
+    let cancelled = false;
 
-    Promise.all([
-      fetchReceivedAttestations(activeAddress),
-      fetchIssuedAttestations(activeAddress),
-    ])
-      .then(([r, i]) => {
+    const load = async () => {
+      setIsLoading(true);
+      try {
+        const [r, i] = await Promise.all([
+          fetchReceivedAttestations(activeAddress),
+          fetchIssuedAttestations(activeAddress),
+        ]);
+        if (cancelled) return;
         setReceived(r);
         setIssued(i);
-      })
-      .finally(() => setIsLoading(false));
+      } finally {
+        if (!cancelled) setIsLoading(false);
+      }
+    };
+
+    void load();
+
+    return () => {
+      cancelled = true;
+    };
   }, [activeAddress]);
 
   if (!activeAddress) {

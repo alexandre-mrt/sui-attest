@@ -2,7 +2,7 @@ import { SuiGrpcClient } from '@mysten/sui/grpc';
 import { StatusBadge, deriveStatus } from '@/components/StatusBadge';
 import { DecryptButton } from '@/components/DecryptButton';
 import { WalrusDocViewer } from '@/components/WalrusDocViewer';
-import { SUI_RPC_URLS, PACKAGE_ID, REVOCATION_REGISTRY_ID } from '@/lib/constants';
+import { SUI_RPC_URLS, REVOCATION_REGISTRY_ID } from '@/lib/constants';
 import { truncateAddress, formatTimestamp } from '@/lib/utils';
 import type { Attestation } from '@/lib/types';
 import Link from 'next/link';
