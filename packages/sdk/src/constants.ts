@@ -39,9 +39,9 @@ export const SESSION_KEY_TTL_MIN = 10;
 
 export const TESTNET_CONFIG = {
 	packageId:
-		"0x3827645d508fd7f1ebbddb0f7d7804e8b0b6658b7c8e729e4be90a69cefb21a1",
+		"0xad9694dd2e550d1d0323c020f476f68e634b9b251bde4f72dccc9c1221b0d86f",
 	schemaRegistryId:
-		"0x023e5da71a29d6cc94919453d7c3b3a269c1afb6fa2b0b8e8f51ac0a1bf4150f",
+		"0xee6f0b2a0ef8ce839b3690391718175ab64d3039c55fff6d1fa29e9be8073c4c",
 	revocationRegistryId:
-		"0x3b5f1504c8320c726a35ceb59974ca69ed675b51cb5dd9aac1c16703490c8ab7",
+		"0x72169c41300e41991ca88ef14ecaff3261ee4a510b9f9bff5702ccd9cbeae2d3",
 };
