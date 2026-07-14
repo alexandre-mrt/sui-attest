@@ -127,34 +127,47 @@ passed, transaction digests in `scripts/E2E_RESULTS.md`.
 
 ## Security
 
-`AUDIT_REPORT.md` is a self-audit of the Move code: 3 HIGH, 8 MEDIUM, 6 LOW
-findings, with the ones that are fixed marked as such. The fixed HIGHs are the
-interesting ones:
+`AUDIT_REPORT.md` is a **self-audit** of the Move code — my own review, not a
+third-party audit: 3 HIGH, 8 MEDIUM, 6 LOW findings, each carrying a status line
+(fixed / partially fixed / open). Fixed:
 
-- **`seal_approve` ignored revocation** — a revoked encrypted attestation stayed
-  decryptable forever by anyone on the allowlist. `seal_approve` now takes
-  `&RevocationRegistry` and aborts if the attestation is revoked.
-- **No on-chain link between an `Attestation` and its `AttestationAllowlist`** —
-  fixed with a `seal_allowlist_id: Option<ID>` field.
-- **Unpinned Sui framework dependency** — `Move.toml` now pins a rev.
+- **No on-chain link between an `Attestation` and its `AttestationAllowlist`**
+  (M-1) — fixed with a `seal_allowlist_id: Option<ID>` field.
+- **Unpinned Sui framework dependency** (H-2) — `Move.toml` now pins a rev.
+- All six LOW findings, and M-3 / M-4.
+
+The most interesting finding is the one that is *not* fully fixed:
+
+- **H-1, partially fixed.** `seal_approve` originally ignored revocation, so a
+  revoked encrypted attestation stayed decryptable forever by anyone on the
+  allowlist. It now takes `&RevocationRegistry` and aborts on a revoked
+  attestation — **but only when the SEAL identity is ≥ 64 bytes**
+  (`allowlist_id || attestation_id`). The web client derives identities as
+  `allowlist_id || 5-byte nonce` (37 bytes), because encryption happens *before*
+  the attestation exists and its ID is therefore unknown. In that flow the
+  revocation check is inert. Fixing it properly means attesting first, then
+  encrypting with the attestation ID in the identity, then attaching the Walrus
+  blob — which needs a Move function to set the blob ID after issuance. Not done.
 
 ## Limitations (honest list)
 
-- **Not audited by anyone else.** `AUDIT_REPORT.md` is my own review. Not for
-  mainnet as-is.
-- **Open findings**: the UpgradeCap is a single EOA with no timelock or multisig
-  (H-3); there is no pause mechanism (M-6); shared objects carry no `version`
-  field, so upgrades that change state need a fresh publish (M-8) — which is why
-  there are four testnet packages; `RevocationRegistry` is a single shared object
-  and therefore a throughput ceiling on issuance (M-7); `Attestation` has `store`,
-  so it can be transferred and its `recipient` field then goes stale (M-2).
+- **Not audited by anyone else.** Not for mainnet as-is.
+- **H-1 is only partially fixed** (above): revocation does not currently cut off
+  decryption in the web flow.
+- **Other open findings**: the UpgradeCap is a single EOA with no timelock or
+  multisig (H-3); no pause mechanism (M-6); shared objects carry no `version`
+  field, so state-changing upgrades need a fresh publish (M-8) — which is why
+  four testnet packages exist; `RevocationRegistry` is a single shared object and
+  therefore a throughput ceiling on issuance (M-7); `Attestation` has `store`, so
+  it can be transferred and its `recipient` field then goes stale (M-2).
 - **Walrus and SEAL are wired in the web app** (`@mysten/walrus` `writeBlob` for
-  schema/credential blobs, `@mysten/seal` for encrypt/decrypt with an on-chain
-  allowlist policy) and covered by unit tests, but they are exercised **through
-  the wallet in the browser**, not by the headless e2e script. The e2e evidence
-  in this repo covers schema/attest/verify/revoke only.
-- **No indexer.** The explorer reads events over GraphQL, which is fine for a
-  demo and not fine for production query loads.
+  schema/credential blobs; `@mysten/seal` for encrypt/decrypt against the
+  on-chain allowlist policy) but they run **through the wallet in the browser**
+  and have no automated coverage. The 43 SDK tests cover transaction building,
+  parsing and hashing — not Walrus or SEAL. The e2e evidence in this repo covers
+  schema / attest / verify / revoke only.
+- **No indexer.** The explorer reads events over GraphQL — fine for a demo, not
+  for production query loads.
 - Testnet only.
 
 ## License
