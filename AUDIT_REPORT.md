@@ -30,7 +30,7 @@ Clean module separation and correct Move 2024 patterns. No critical vulnerabilit
 
 ### [H-1] seal_approve does not check revocation status
 **Severity:** HIGH | **Confidence:** HIGH
-**Status:** PARTIALLY FIXED — `seal_approve` now takes `&RevocationRegistry` and aborts on a revoked attestation, **but only when the SEAL identity is at least 64 bytes** (`allowlist_id || attestation_id`). The web client currently derives identities as `allowlist_id || 5-byte nonce` (37 bytes), so in that flow the revocation check does not run. Binding the identity to the attestation ID requires attesting *before* encrypting; that flow change is not implemented.
+**Status:** PARTIALLY FIXED — `seal_approve` now takes `&RevocationRegistry` and aborts on a revoked attestation, **but only when the SEAL identity is at least 64 bytes** (`allowlist_id || attestation_id`). Both clients (the SDK's `encryptAttestation` and the web app's `useSeal` hook) currently derive identities as `allowlist_id || 5-byte nonce` (37 bytes), so the revocation check never runs in practice: a revoked attestation's payload stays decryptable by anyone on the allowlist. Binding the identity to the attestation ID requires attesting *before* encrypting; that flow change is not implemented.
 **Location:** `seal_policy.move:101-109`
 
 **Description:**

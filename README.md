@@ -80,9 +80,13 @@ seal_policy.move      AttestationAllowlist (shared) + seal_approve — SEAL acce
   off-chain — plaintext on Walrus, or SEAL-encrypted on Walrus.
 - **Revocation**: `revoke_by_id` as described above. Revocation is unilateral
   and permanent (no unrevoke).
-- **Encryption**: `seal_approve` gates decryption on an allowlist *and* on the
-  attestation not being revoked, so revoking a credential also cuts off
-  decryption of its payload.
+- **Encryption**: `seal_approve` gates decryption on the `AttestationAllowlist`
+  (the caller must be a listed verifier). It *also* contains a revocation check
+  against `RevocationRegistry`, but that branch only runs when the SEAL identity
+  is ≥ 64 bytes (`allowlist_id || attestation_id`). The clients build 37-byte
+  identities (`allowlist_id || 5-byte nonce`), so **today revocation does not cut
+  off decryption** — the payload of a revoked attestation stays decryptable by
+  anyone on the allowlist. See H-1 under Security.
 
 ## Deployed (testnet)
 
@@ -142,7 +146,8 @@ The most interesting finding is the one that is *not* fully fixed:
   revoked encrypted attestation stayed decryptable forever by anyone on the
   allowlist. It now takes `&RevocationRegistry` and aborts on a revoked
   attestation — **but only when the SEAL identity is ≥ 64 bytes**
-  (`allowlist_id || attestation_id`). The web client derives identities as
+  (`allowlist_id || attestation_id`). Both clients — the SDK's
+  `encryptAttestation` and the web app's `useSeal` hook — derive identities as
   `allowlist_id || 5-byte nonce` (37 bytes), because encryption happens *before*
   the attestation exists and its ID is therefore unknown. In that flow the
   revocation check is inert. Fixing it properly means attesting first, then
@@ -153,7 +158,8 @@ The most interesting finding is the one that is *not* fully fixed:
 
 - **Not audited by anyone else.** Not for mainnet as-is.
 - **H-1 is only partially fixed** (above): revocation does not currently cut off
-  decryption in the web flow.
+  decryption, because the identities the clients build never reach the length
+  that activates the on-chain revocation check.
 - **Other open findings**: the UpgradeCap is a single EOA with no timelock or
   multisig (H-3); no pause mechanism (M-6); shared objects carry no `version`
   field, so state-changing upgrades need a fresh publish (M-8) — which is why
