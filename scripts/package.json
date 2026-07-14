@@ -1,0 +1,15 @@
+{
+  "name": "sui-attest-scripts",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "e2e": "bun run e2e-test.ts"
+  },
+  "dependencies": {
+    "@mysten/sui": "^2.16.2"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "typescript": "^5.5.0"
+  }
+}
