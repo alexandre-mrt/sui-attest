@@ -1,5 +1,15 @@
-.env
-node_modules
-.next
-packages/move/build/
+# Dependencies
+node_modules/
+
+# Build output
+.next/
 dist/
+packages/move/build/
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# OS / editor
+.DS_Store
