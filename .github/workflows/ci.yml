@@ -1,0 +1,70 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  move:
+    name: Move tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Sui CLI
+        run: |
+          SUI_VERSION="testnet-v1.72.1"
+          curl -sSfL -o sui.tgz \
+            "https://github.com/MystenLabs/sui/releases/download/${SUI_VERSION}/sui-${SUI_VERSION}-ubuntu-x86_64.tgz"
+          mkdir -p "$HOME/.sui/bin"
+          tar -xzf sui.tgz -C "$HOME/.sui/bin"
+          echo "$HOME/.sui/bin" >> "$GITHUB_PATH"
+
+      - name: sui move test
+        working-directory: packages/move
+        run: sui move test
+
+  sdk:
+    name: SDK tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        working-directory: packages/sdk
+        run: bun install --frozen-lockfile
+
+      - name: Type check
+        working-directory: packages/sdk
+        run: bunx tsc --noEmit
+
+      - name: Unit tests
+        working-directory: packages/sdk
+        run: bun test
+
+  web:
+    name: Web build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        working-directory: apps/web
+        run: bun install --frozen-lockfile
+
+      - name: Lint
+        working-directory: apps/web
+        run: bun run lint
+
+      - name: Build
+        working-directory: apps/web
+        run: bun run build
